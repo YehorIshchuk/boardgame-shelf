@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatPlayers, isValidGame } from "./utils.js";
 
 const api = (path, options) =>
   fetch(`/api${path}`, {
@@ -35,6 +36,10 @@ export default function App() {
 
   const addGame = (e) => {
     e.preventDefault();
+    if (!isValidGame(form)) {
+      setError("Перевірте назву гри та кількість гравців.");
+      return;
+    }
     run(async () => {
       await api("/games", {
         method: "POST",
@@ -89,7 +94,7 @@ export default function App() {
             <div>
               <strong>{g.title}</strong>
               <span className="meta">
-                {g.minPlayers}–{g.maxPlayers} гравців
+                {formatPlayers(g.minPlayers, g.maxPlayers)}
               </span>
               {g.isBorrowed && <span className="badge">у {g.borrowedBy}</span>}
             </div>

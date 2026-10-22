@@ -1,0 +1,32 @@
+# Runs the project from images published to GHCR (no local build).
+#   docker compose -f docker-compose.registry.yml up
+# Pin a specific build:  IMAGE_TAG=sha-abc1234 docker compose -f docker-compose.registry.yml up
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-boardgames}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-boardgames}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/yehorishchuk/boardgame-shelf-backend:${IMAGE_TAG:-latest}
+    environment:
+      ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-boardgames};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/yehorishchuk/boardgame-shelf-frontend:${IMAGE_TAG:-latest}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

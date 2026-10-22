@@ -1,6 +1,7 @@
 using BoardGames.Api.Data;
 using BoardGames.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace BoardGames.Tests;
 

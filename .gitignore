@@ -1,7 +1,8 @@
-.env
 **/bin/
 **/obj/
-node_modules/
-dist/
-.vs/
+.env
 .idea/
+.vs/
+TestResults/
+dist/
+node_modules/
