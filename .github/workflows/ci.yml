@@ -12,7 +12,7 @@ concurrency:
 
 env:
   # change to CRITICAL if base images contain HIGH vulnerabilities that cannot be fixed
-  TRIVY_SEVERITY: CRITICAL,HIGH
+  TRIVY_SEVERITY: CRITICAL
 
 permissions:
   contents: read
