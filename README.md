@@ -1,5 +1,7 @@
 # BoardGame Shelf
 
+![CI](https://github.com/YehorIshchuk/boardgame-shelf/actions/workflows/ci.yml/badge.svg)
+
 Невеликий вебзастосунок для обліку настільних ігор клубу (додати гру, видати, повернути, видалити).
 
 Використовується в лабораторних з предмету «Технології DevOps».
@@ -44,3 +46,16 @@ cd backend/BoardGames.Api && dotnet run
 # frontend
 cd frontend && npm install && npm run dev
 ```
+
+## CI/CD (GitHub Actions)
+
+Пайплайн `.github/workflows/ci.yml` запускається на кожен push і на кожен Pull Request у `main`.
+
+| Job | Що робить |
+|-----|-----------|
+| `backend` | restore → build → `dotnet format` (лінт) → xUnit тести (кеш NuGet) |
+| `frontend` | `npm ci` → ESLint → Vitest → build (кеш npm) |
+| `images` | збірка Docker-образів (matrix) → Trivy-скан; потребує успіху `backend` і `frontend` |
+| `publish` | лише для push: публікація в `ghcr.io` з тегами `sha-<commit>` та `latest` (тільки `main`) |
+
+Запуск із опублікованих образів: `docker compose -f docker-compose.registry.yml up`.
