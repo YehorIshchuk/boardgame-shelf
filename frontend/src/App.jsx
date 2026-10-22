@@ -13,6 +13,7 @@ const api = (path, options) =>
   });
 
 export default function App() {
+  console.log("debug");
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ title: "", minPlayers: 2, maxPlayers: 4 });
