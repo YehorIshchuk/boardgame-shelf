@@ -1,0 +1,4 @@
+**/bin
+**/obj
+BoardGames.Tests
+Dockerfile

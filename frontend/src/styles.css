@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f4f1ea; color: #222; }
+.container { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
+h1 { margin: 0; }
+.sub { color: #777; margin: 4px 0 20px; }
+.card { background: #fff; border-radius: 10px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.form { display: flex; gap: 8px; margin-bottom: 16px; }
+.form input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+.form input:first-child { flex: 1; }
+.form input[type=number] { width: 70px; }
+button { padding: 8px 14px; border: 0; border-radius: 6px; background: #2d6a4f; color: #fff; cursor: pointer; }
+button.danger { background: #b23a48; }
+.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.item { display: flex; justify-content: space-between; align-items: center; }
+.meta { margin-left: 10px; color: #888; font-size: 14px; }
+.badge { margin-left: 10px; background: #ffe8a3; padding: 2px 8px; border-radius: 10px; font-size: 13px; }
+.actions { display: flex; gap: 6px; }
+.error { background: #fde2e4; color: #8a1c2b; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
