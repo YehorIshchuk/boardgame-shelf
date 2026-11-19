@@ -1,0 +1,52 @@
+
+$ kubectl -n boardgame-shelf get configmap boardgame-config -o yaml
+apiVersion: v1
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  App__ClubName: Кубик і Ко
+  App__MaxBorrowDays: "14"
+  Logging__LogLevel__Default: Information
+  POSTGRES_DB: boardgames
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"ASPNETCORE_ENVIRONMENT":"Production","App__ClubName":"Кубик і Ко","App__MaxBorrowDays":"14","Logging__LogLevel__Default":"Information","POSTGRES_DB":"boardgames","POSTGRES_HOST":"postgres","POSTGRES_PORT":"5432"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/part-of":"boardgame-shelf"},"name":"boardgame-config","namespace":"boardgame-shelf"}}
+  creationTimestamp: "2026-11-19T00:22:08Z"
+  labels:
+    app.kubernetes.io/part-of: boardgame-shelf
+  name: boardgame-config
+  namespace: boardgame-shelf
+  resourceVersion: "1176"
+  uid: 32c6f44f-34c2-4a8f-be34-3e1d19b0153f
+
+$ kubectl -n boardgame-shelf describe secret boardgame-db-secret
+Name:         boardgame-db-secret
+Namespace:    boardgame-shelf
+Labels:       app.kubernetes.io/part-of=boardgame-shelf
+Annotations:  <none>
+
+Type:  Opaque
+
+Data
+====
+POSTGRES_PASSWORD:  19 bytes
+POSTGRES_USER:      9 bytes
+
+$ kubectl -n boardgame-shelf exec backend-7cbc7b86c5-gt75k -- printenv | grep -E '^(ASPNETCORE_ENVIRONMENT|App__|Logging__|POSTGRES_HOST|POSTGRES_PORT|POSTGRES_DB|POSTGRES_USER)=' | sort
+ASPNETCORE_ENVIRONMENT=Production
+POSTGRES_DB=boardgames
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=shelf_app
+
+$ kubectl -n boardgame-shelf exec backend-7cbc7b86c5-gt75k -- sh -c 'echo POSTGRES_PASSWORD length: ${#POSTGRES_PASSWORD}'
+POSTGRES_PASSWORD length: 19
+
+$ echo Secret value length: $(kubectl -n boardgame-shelf get secret boardgame-db-secret -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d | wc -c)
+Secret value length: 19
+
+$ kubectl -n boardgame-shelf exec deploy/frontend -- wget -qO- http://backend:8080/api/info; echo
+{"version":"1.0.0","instance":"backend-7cbc7b86c5-gt75k","environment":"Production","clubName":"Кубик і Ко","maxBorrowDays":14,"dbHost":"postgres","dbUser":"shelf_app","dbPasswordSet":true}

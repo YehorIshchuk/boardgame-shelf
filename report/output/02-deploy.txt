@@ -1,0 +1,70 @@
+
+$ kubectl apply -f '/Users/yehorishchuk/Desktop/boardgame-shelf/k8s/'
+namespace/boardgame-shelf created
+configmap/boardgame-config created
+secret/boardgame-db-secret created
+persistentvolumeclaim/postgres-data created
+deployment.apps/postgres created
+service/postgres created
+deployment.apps/backend created
+service/backend created
+deployment.apps/frontend created
+service/frontend created
+ingress.networking.k8s.io/boardgame-shelf created
+
+$ kubectl -n boardgame-shelf annotate deploy/backend deploy/frontend kubernetes.io/change-cause='initial deploy 1.0.0' --overwrite
+deployment.apps/backend annotated
+deployment.apps/frontend annotated
+
+$ kubectl -n boardgame-shelf rollout status deploy/postgres --timeout=180s
+Waiting for deployment "postgres" rollout to finish: 0 of 1 updated replicas are available...
+deployment "postgres" successfully rolled out
+
+$ kubectl -n boardgame-shelf rollout status deploy/backend --timeout=180s
+Waiting for deployment "backend" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "backend" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "backend" rollout to finish: 0 of 2 updated replicas are available...
+deployment "backend" successfully rolled out
+
+$ kubectl -n boardgame-shelf rollout status deploy/frontend --timeout=180s
+Waiting for deployment "frontend" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "frontend" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "frontend" rollout to finish: 0 of 2 updated replicas are available...
+deployment "frontend" successfully rolled out
+
+$ kubectl -n boardgame-shelf get pods,deployments,replicasets,services,ingress,pvc -o wide
+NAME                            READY   STATUS    RESTARTS   AGE    IP            NODE       NOMINATED NODE   READINESS GATES
+pod/backend-7cbc7b86c5-gt75k    1/1     Running   0          111s   10.244.0.8    minikube   <none>           <none>
+pod/backend-7cbc7b86c5-n9jxt    1/1     Running   0          111s   10.244.0.9    minikube   <none>           <none>
+pod/frontend-55df945bdb-774pk   1/1     Running   0          111s   10.244.0.10   minikube   <none>           <none>
+pod/frontend-55df945bdb-djmv9   1/1     Running   0          111s   10.244.0.11   minikube   <none>           <none>
+pod/postgres-b4bb9596d-lfghl    1/1     Running   0          112s   10.244.0.7    minikube   <none>           <none>
+
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                                                SELECTOR
+deployment.apps/backend    2/2     2            2           111s   backend      ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0    app.kubernetes.io/component=backend,app.kubernetes.io/name=boardgame-shelf
+deployment.apps/frontend   2/2     2            2           111s   frontend     ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.0.0   app.kubernetes.io/component=frontend,app.kubernetes.io/name=boardgame-shelf
+deployment.apps/postgres   1/1     1            1           112s   postgres     postgres:16-alpine                                    app.kubernetes.io/component=database,app.kubernetes.io/name=boardgame-shelf
+
+NAME                                  DESIRED   CURRENT   READY   AGE    CONTAINERS   IMAGES                                                SELECTOR
+replicaset.apps/backend-7cbc7b86c5    2         2         2       111s   backend      ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0    app.kubernetes.io/component=backend,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=7cbc7b86c5
+replicaset.apps/frontend-55df945bdb   2         2         2       111s   frontend     ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.0.0   app.kubernetes.io/component=frontend,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=55df945bdb
+replicaset.apps/postgres-b4bb9596d    1         1         1       112s   postgres     postgres:16-alpine                                    app.kubernetes.io/component=database,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=b4bb9596d
+
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE    SELECTOR
+service/backend    ClusterIP   10.99.174.172   <none>        8080/TCP       111s   app.kubernetes.io/component=backend,app.kubernetes.io/name=boardgame-shelf
+service/frontend   NodePort    10.104.101.12   <none>        80:30080/TCP   111s   app.kubernetes.io/component=frontend,app.kubernetes.io/name=boardgame-shelf
+service/postgres   ClusterIP   10.110.84.120   <none>        5432/TCP       112s   app.kubernetes.io/component=database,app.kubernetes.io/name=boardgame-shelf
+
+NAME                                        CLASS   HOSTS              ADDRESS        PORTS   AGE
+ingress.networking.k8s.io/boardgame-shelf   nginx   boardgames.local   192.168.49.2   80      111s
+
+NAME                                  STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE    VOLUMEMODE
+persistentvolumeclaim/postgres-data   Bound    pvc-d7415c6e-aa7e-4e24-be4d-e1915ca304ed   1Gi        RWO            standard       <unset>                 112s   Filesystem
+
+$ kubectl -n boardgame-shelf top pods || echo 'metrics-server ще збирає метрики, повторіть за хвилину'
+error: metrics not available yet
+metrics-server ще збирає метрики, повторіть за хвилину
+
+$ curl -s --max-time 5 -H 'Host: boardgames.local' http://$(minikube ip)/api/info || echo 'Ingress недоступний напряму — див. README (minikube tunnel)'; echo
+Ingress недоступний напряму — див. README (minikube tunnel)
+

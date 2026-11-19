@@ -1,0 +1,111 @@
+
+$ kubectl -n boardgame-shelf set image deploy/backend backend=ghcr.io/yehorishchuk/boardgame-shelf-backend:1.1.0
+deployment.apps/backend image updated
+
+$ kubectl -n boardgame-shelf annotate deploy/backend kubernetes.io/change-cause='update to 1.1.0' --overwrite
+deployment.apps/backend annotated
+
+$ kubectl -n boardgame-shelf rollout status deploy/backend --timeout=300s
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+deployment "backend" successfully rolled out
+
+$ kubectl -n boardgame-shelf set image deploy/frontend frontend=ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.1.0
+deployment.apps/frontend image updated
+
+$ kubectl -n boardgame-shelf annotate deploy/frontend kubernetes.io/change-cause='update to 1.1.0' --overwrite
+deployment.apps/frontend annotated
+
+$ kubectl -n boardgame-shelf rollout status deploy/frontend --timeout=300s
+Waiting for deployment "frontend" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "frontend" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "frontend" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "frontend" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "frontend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "frontend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "frontend" rollout to finish: 1 old replicas are pending termination...
+deployment "frontend" successfully rolled out
+
+$ kubectl -n boardgame-shelf get rs -l app.kubernetes.io/part-of=boardgame-shelf -o wide
+NAME                  DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES                                                SELECTOR
+backend-5d48845d4     4         4         4       47s     backend      ghcr.io/yehorishchuk/boardgame-shelf-backend:1.1.0    app.kubernetes.io/component=backend,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=5d48845d4
+backend-7cbc7b86c5    0         0         0       7m51s   backend      ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0    app.kubernetes.io/component=backend,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=7cbc7b86c5
+frontend-55df945bdb   0         0         0       7m51s   frontend     ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.0.0   app.kubernetes.io/component=frontend,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=55df945bdb
+frontend-844d665697   2         2         2       14s     frontend     ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.1.0   app.kubernetes.io/component=frontend,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=844d665697
+postgres-b4bb9596d    1         1         1       7m52s   postgres     postgres:16-alpine                                    app.kubernetes.io/component=database,app.kubernetes.io/name=boardgame-shelf,pod-template-hash=b4bb9596d
+
+$ kubectl -n boardgame-shelf describe deploy backend | sed -n '/^Events:/,$p'
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  7m51s  deployment-controller  Scaled up replica set backend-7cbc7b86c5 from 0 to 2
+  Normal  ScalingReplicaSet  61s    deployment-controller  Scaled up replica set backend-7cbc7b86c5 from 2 to 4
+  Normal  ScalingReplicaSet  47s    deployment-controller  Scaled up replica set backend-5d48845d4 from 0 to 1
+  Normal  ScalingReplicaSet  35s    deployment-controller  Scaled down replica set backend-7cbc7b86c5 from 4 to 3
+  Normal  ScalingReplicaSet  35s    deployment-controller  Scaled up replica set backend-5d48845d4 from 1 to 2
+  Normal  ScalingReplicaSet  28s    deployment-controller  Scaled down replica set backend-7cbc7b86c5 from 3 to 2
+  Normal  ScalingReplicaSet  28s    deployment-controller  Scaled up replica set backend-5d48845d4 from 2 to 3
+  Normal  ScalingReplicaSet  21s    deployment-controller  Scaled down replica set backend-7cbc7b86c5 from 2 to 1
+  Normal  ScalingReplicaSet  21s    deployment-controller  Scaled up replica set backend-5d48845d4 from 3 to 4
+  Normal  ScalingReplicaSet  14s    deployment-controller  (combined from similar events): Scaled down replica set backend-7cbc7b86c5 from 1 to 0
+
+$ Доступність під час оновлення (повний лог: 06-availability.log)
+успішних запитів: 151, невдалих: 0
+  26 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+   1 "version":"1.1.0"
+  13 "version":"1.0.0"
+   1 "version":"1.1.0"
+   2 "version":"1.0.0"
+   2 "version":"1.1.0"
+   2 "version":"1.0.0"
+   3 "version":"1.1.0"
+   2 "version":"1.0.0"
+   2 "version":"1.1.0"
+   4 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+   1 "version":"1.1.0"
+   4 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+   2 "version":"1.1.0"
+   2 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+   6 "version":"1.1.0"
+   1 "version":"1.0.0"
+   4 "version":"1.1.0"
+   1 "version":"1.0.0"
+   2 "version":"1.1.0"
+   1 "version":"1.0.0"
+   2 "version":"1.1.0"
+   1 "version":"1.0.0"
+   2 "version":"1.1.0"
+   1 "version":"1.0.0"
+   1 "version":"1.1.0"
+   1 "version":"1.0.0"
+  47 "version":"1.1.0"

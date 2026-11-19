@@ -1,0 +1,62 @@
+
+$ kubectl -n boardgame-shelf rollout history deploy/backend
+deployment.apps/backend 
+REVISION  CHANGE-CAUSE
+1         initial deploy 1.0.0
+2         update to 1.1.0
+
+
+$ kubectl -n boardgame-shelf rollout history deploy/backend --revision=2 | grep -E 'Image|change-cause'
+  Annotations:	kubernetes.io/change-cause: update to 1.1.0
+    Image:	ghcr.io/yehorishchuk/boardgame-shelf-backend:1.1.0
+
+$ kubectl -n boardgame-shelf rollout undo deploy/backend
+Warning: resource deployments/backend was previously managed with 'kubectl apply'. Rolling back will not update the kubectl.kubernetes.io/last-applied-configuration annotation, which may cause unexpected behavior on future 'kubectl apply' operations. Consider using 'kubectl apply' with your previous configuration file instead.
+deployment.apps/backend rolled back
+
+$ kubectl -n boardgame-shelf rollout undo deploy/frontend
+Warning: resource deployments/frontend was previously managed with 'kubectl apply'. Rolling back will not update the kubectl.kubernetes.io/last-applied-configuration annotation, which may cause unexpected behavior on future 'kubectl apply' operations. Consider using 'kubectl apply' with your previous configuration file instead.
+deployment.apps/frontend rolled back
+
+$ kubectl -n boardgame-shelf rollout status deploy/backend --timeout=300s
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 2 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 3 out of 4 new replicas have been updated...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "backend" rollout to finish: 1 old replicas are pending termination...
+deployment "backend" successfully rolled out
+
+$ kubectl -n boardgame-shelf rollout status deploy/frontend --timeout=300s
+deployment "frontend" successfully rolled out
+
+$ kubectl -n boardgame-shelf rollout history deploy/backend
+deployment.apps/backend 
+REVISION  CHANGE-CAUSE
+2         update to 1.1.0
+3         initial deploy 1.0.0
+
+
+$ kubectl -n boardgame-shelf get deploy -o wide
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES                                                SELECTOR
+backend    4/4     4            4           8m31s   backend      ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0    app.kubernetes.io/component=backend,app.kubernetes.io/name=boardgame-shelf
+frontend   2/2     2            2           8m31s   frontend     ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.0.0   app.kubernetes.io/component=frontend,app.kubernetes.io/name=boardgame-shelf
+postgres   1/1     1            1           8m32s   postgres     postgres:16-alpine                                    app.kubernetes.io/component=database,app.kubernetes.io/name=boardgame-shelf
+
+$ kubectl -n boardgame-shelf exec deploy/frontend -- wget -qO- http://backend:8080/api/info; echo
+{"version":"1.0.0","instance":"backend-7cbc7b86c5-6gtr9","environment":"Production","clubName":"Кубик і Ко","maxBorrowDays":14,"dbHost":"postgres","dbUser":"shelf_app","dbPasswordSet":true}
+
+$ kubectl -n boardgame-shelf scale deploy/backend --replicas=2
+deployment.apps/backend scaled
