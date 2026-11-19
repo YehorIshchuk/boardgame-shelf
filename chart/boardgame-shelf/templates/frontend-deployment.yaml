@@ -10,6 +10,7 @@ spec:
   replicas: {{ .Values.frontend.replicaCount }}
   revisionHistoryLimit: 5
   minReadySeconds: 5
+  progressDeadlineSeconds: {{ .Values.progressDeadlineSeconds }}
   strategy:
     type: RollingUpdate
     rollingUpdate:

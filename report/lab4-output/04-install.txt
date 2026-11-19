@@ -1,0 +1,123 @@
+
+$ helm install shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -n boardgame-dev --create-namespace -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-dev.yaml' --wait --timeout 5m
+NAME: shelf
+LAST DEPLOYED: Thu Nov 19 12:14:35 2026
+NAMESPACE: boardgame-dev
+STATUS: deployed
+REVISION: 1
+NOTES:
+BoardGame Shelf встановлено: реліз «shelf», namespace «boardgame-dev», ревізія 1.
+Версія backend: 1.0.0, frontend: 1.0.0.
+
+1. Дочекатися готовності подів:
+   kubectl -n boardgame-dev get pods -l app.kubernetes.io/instance=shelf -w
+
+2. Відкрити застосунок:
+   Через NodePort:
+     minikube service shelf-boardgame-shelf-frontend -n boardgame-dev
+   Або на будь-якій ОС через port-forward:
+     kubectl -n boardgame-dev port-forward svc/shelf-boardgame-shelf-frontend 8081:80
+     -> http://localhost:8081
+
+3. Перевірити реліз:
+   helm test shelf -n boardgame-dev --logs
+
+$ helm list -A
+NAME 	NAMESPACE    	REVISION	UPDATED                             	STATUS  	CHART                	APP VERSION
+shelf	boardgame-dev	1       	2026-11-19 12:14:35.750582 +0200 EET	deployed	boardgame-shelf-0.1.0	1.0.0      
+
+$ helm status shelf -n boardgame-dev | head -12
+NAME: shelf
+LAST DEPLOYED: Thu Nov 19 12:14:35 2026
+NAMESPACE: boardgame-dev
+STATUS: deployed
+REVISION: 1
+NOTES:
+BoardGame Shelf встановлено: реліз «shelf», namespace «boardgame-dev», ревізія 1.
+Версія backend: 1.0.0, frontend: 1.0.0.
+
+1. Дочекатися готовності подів:
+   kubectl -n boardgame-dev get pods -l app.kubernetes.io/instance=shelf -w
+
+
+$ helm get values shelf -n boardgame-dev
+USER-SUPPLIED VALUES:
+backend:
+  image:
+    tag: 1.0.0
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 96Mi
+config:
+  aspnetEnvironment: Development
+  clubName: Кубик і Ко (dev)
+  logLevel: Debug
+database:
+  persistence:
+    size: 1Gi
+frontend:
+  image:
+    tag: 1.0.0
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 64Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi
+  service:
+    type: NodePort
+ingress:
+  enabled: false
+
+$ kubectl -n boardgame-dev get deploy,rs,pods,svc,cm,secret,pvc,ingress
+NAME                                             READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/shelf-boardgame-shelf-backend    1/1     1            0           12s
+deployment.apps/shelf-boardgame-shelf-frontend   1/1     1            1           12s
+deployment.apps/shelf-boardgame-shelf-postgres   1/1     1            1           12s
+
+NAME                                                        DESIRED   CURRENT   READY   AGE
+replicaset.apps/shelf-boardgame-shelf-backend-74d96bdbc     1         1         1       12s
+replicaset.apps/shelf-boardgame-shelf-frontend-77c75f7b7    1         1         1       12s
+replicaset.apps/shelf-boardgame-shelf-postgres-56fb8b45ff   1         1         1       12s
+
+NAME                                                  READY   STATUS    RESTARTS   AGE
+pod/shelf-boardgame-shelf-backend-74d96bdbc-66c9r     1/1     Running   0          12s
+pod/shelf-boardgame-shelf-frontend-77c75f7b7-dcd9h    1/1     Running   0          12s
+pod/shelf-boardgame-shelf-postgres-56fb8b45ff-9n7kb   1/1     Running   0          12s
+
+NAME                                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+service/shelf-boardgame-shelf-backend    ClusterIP   10.105.62.144    <none>        8080/TCP       12s
+service/shelf-boardgame-shelf-frontend   NodePort    10.107.218.139   <none>        80:32175/TCP   12s
+service/shelf-boardgame-shelf-postgres   ClusterIP   10.111.187.237   <none>        5432/TCP       12s
+
+NAME                                             DATA   AGE
+configmap/kube-root-ca.crt                       1      13m
+configmap/shelf-boardgame-shelf-config           7      12s
+configmap/shelf-boardgame-shelf-frontend-nginx   1      12s
+
+NAME                                 TYPE                 DATA   AGE
+secret/sh.helm.release.v1.shelf.v1   helm.sh/release.v1   1      12s
+secret/shelf-boardgame-shelf-db      Opaque               2      12s
+
+NAME                                                        STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/shelf-boardgame-shelf-postgres-data   Bound    pvc-aec6d3c2-4aa4-4b15-b894-a7511d088c61   1Gi        RWO            standard       <unset>                 12s
+
+$ kubectl -n boardgame-dev exec deploy/shelf-boardgame-shelf-frontend -- wget -qO- http://127.0.0.1/api/info; echo
+{"version":"1.0.0","instance":"shelf-boardgame-shelf-backend-74d96bdbc-66c9r","environment":"Development","clubName":"Кубик і Ко (dev)","maxBorrowDays":14,"dbHost":"shelf-boardgame-shelf-postgres","dbUser":"shelf_app","dbPasswordSet":true}
+
+$ kubectl -n boardgame-dev get secrets -l owner=helm --show-labels
+NAME                          TYPE                 DATA   AGE   LABELS
+sh.helm.release.v1.shelf.v1   helm.sh/release.v1   1      20s   modifiedAt=1795083288,name=shelf,owner=helm,status=deployed,version=1
+
+$ kubectl -n boardgame-dev get secret sh.helm.release.v1.shelf.v1 -o jsonpath='{.type}'; echo
+helm.sh/release.v1
+
+$ kubectl -n boardgame-dev get secret sh.helm.release.v1.shelf.v1 -o jsonpath='{.data.release}' | base64 -d | base64 -d | gunzip | head -c 600; echo ' ...'
+{"name":"shelf","info":{"first_deployed":"2026-11-19T12:14:35.750582+02:00","last_deployed":"2026-11-19T12:14:35.750582+02:00","deleted":"","description":"Install complete","status":"deployed","notes":"BoardGame Shelf встановлено: реліз «shelf», namespace «boardgame-dev», ревізія 1.\nВерсія backend: 1.0.0, frontend: 1.0.0.\n\n1. Дочекатися готовності подів:\n   kubectl -n boardgame-dev get pods -l app.kubernetes.io/instance=shelf -w\n\n2. Відкрити застосунок:\n   Через NodePort:\n     minikube service shelf-boardg ...

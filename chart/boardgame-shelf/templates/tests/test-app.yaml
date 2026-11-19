@@ -5,7 +5,7 @@
 Под лишається після тесту (before-hook-creation), щоб helm test --logs міг прочитати логи;
 наступний запуск тесту видаляє старий под автоматично.
 */}}
-{{- $expected := .Values.backend.image.tag | default .Chart.AppVersion | toString }}
+{{- $expected := .Values.backend.image.tag | default .Values.image.tag | default .Chart.AppVersion | toString }}
 apiVersion: v1
 kind: Pod
 metadata:

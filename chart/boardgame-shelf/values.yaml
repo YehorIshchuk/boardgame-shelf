@@ -9,6 +9,13 @@ fullnameOverride: ""
 image:
   registry: ghcr.io/yehorishchuk
   pullPolicy: IfNotPresent
+  # спільний тег для backend і frontend; порожньо -> appVersion з Chart.yaml.
+  # Тег компонента (backend.image.tag / frontend.image.tag) має пріоритет над цим.
+  tag: ""
+
+# Скільки секунд Deployment може не просуватися, перш ніж стати Failed/Degraded
+# (у Kubernetes за замовчуванням 600)
+progressDeadlineSeconds: 600
 
 # Стратегія оновлення backend і frontend (оновлення без простою)
 rollingUpdate:
@@ -32,6 +39,10 @@ database:
     # Навчальне значення лише для dev. Якщо залишити порожнім, чарт згенерує
     # випадковий пароль при першому встановленні і збереже його при оновленнях.
     password: "dev-only-not-a-secret"
+    # Ім'я вже створеного Secret з ключами POSTGRES_USER і POSTGRES_PASSWORD.
+    # Якщо задано — чарт не створює власний Secret (так паролі не потрапляють у Git;
+    # потрібно для Argo CD, де функція lookup не працює).
+    existingSecret: ""
   image:
     repository: postgres
     tag: "16-alpine"

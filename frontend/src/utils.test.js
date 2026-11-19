@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { footerText, formatPlayers, isValidGame } from "./utils.js";
+import { footerText, formatPlayers, isValidGame, shelfStats, statsText } from "./utils.js";
 
 describe("formatPlayers", () => {
   it("shows a range", () => {
@@ -33,5 +33,16 @@ describe("footerText", () => {
 
   it("handles a missing API", () => {
     expect(footerText(undefined, null)).toBe("web vdev · API недоступне");
+  });
+});
+
+describe("shelfStats", () => {
+  it("counts total, borrowed and available games", () => {
+    const games = [{ isBorrowed: true }, { isBorrowed: false }, { isBorrowed: false }];
+    expect(shelfStats(games)).toEqual({ total: 3, borrowed: 1, available: 2 });
+  });
+
+  it("formats the stats line", () => {
+    expect(statsText({ total: 0, borrowed: 0, available: 0 })).toBe("На полиці: 0 · доступно: 0 · видано: 0");
   });
 });

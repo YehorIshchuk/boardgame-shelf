@@ -58,7 +58,11 @@ app.kubernetes.io/part-of: {{ .Chart.Name }}
 {{- end }}
 
 {{- define "boardgame-shelf.secretName" -}}
+{{- if .Values.database.auth.existingSecret }}
+{{- .Values.database.auth.existingSecret }}
+{{- else }}
 {{- include "boardgame-shelf.fullname" . }}-db
+{{- end }}
 {{- end }}
 
 {{- define "boardgame-shelf.postgresName" -}}
@@ -75,10 +79,10 @@ app.kubernetes.io/part-of: {{ .Chart.Name }}
 
 {{/*
 Повне посилання на образ компонента: <registry>/<repository>:<tag>.
-Порожній tag -> appVersion чарта. Виклик: include "boardgame-shelf.image" (dict "root" $ "image" .Values.backend.image)
+Тег: тег компонента -> спільний image.tag -> appVersion чарта. Виклик: include "boardgame-shelf.image" (dict "root" $ "image" .Values.backend.image)
 */}}
 {{- define "boardgame-shelf.image" -}}
-{{- $tag := .image.tag | default .root.Chart.AppVersion -}}
+{{- $tag := .image.tag | default .root.Values.image.tag | default .root.Chart.AppVersion -}}
 {{- printf "%s/%s:%s" .root.Values.image.registry .image.repository (toString $tag) }}
 {{- end }}
 

@@ -1,0 +1,251 @@
+
+$ helm template shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -n boardgame-dev -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-dev.yaml' > '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-dev.yaml' && echo 'dev  -> rendered-dev.yaml'
+dev  -> rendered-dev.yaml
+
+$ helm template shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -n boardgame-prod -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-prod.yaml' > '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-prod.yaml' && echo 'prod -> rendered-prod.yaml'
+prod -> rendered-prod.yaml
+
+$ for e in dev prod; do echo "== $e"; grep -E '^kind:' '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-'$e'.yaml' | sort | uniq -c; done
+== dev
+   2 kind: ConfigMap
+   3 kind: Deployment
+   1 kind: Job
+   1 kind: PersistentVolumeClaim
+   1 kind: Pod
+   1 kind: Secret
+   3 kind: Service
+== prod
+   2 kind: ConfigMap
+   3 kind: Deployment
+   1 kind: Ingress
+   1 kind: Job
+   1 kind: PersistentVolumeClaim
+   1 kind: Pod
+   1 kind: Secret
+   3 kind: Service
+
+$ for e in dev prod; do echo "== $e"; grep -E '^  name: |^  replicas:|image: "ghcr|ASPNETCORE_ENVIRONMENT|^  type: (NodePort|ClusterIP)|cpu: [0-9]+m$' '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-'$e'.yaml' | grep -v 'name: shelf-boardgame-shelf-test' ; done
+== dev
+  name: shelf-boardgame-shelf-db
+  name: shelf-boardgame-shelf-config
+  ASPNETCORE_ENVIRONMENT: "Development"
+  name: shelf-boardgame-shelf-frontend-nginx
+  name: shelf-boardgame-shelf-postgres-data
+  name: shelf-boardgame-shelf-backend
+  type: ClusterIP
+  name: shelf-boardgame-shelf-frontend
+  type: NodePort
+  name: shelf-boardgame-shelf-postgres
+  type: ClusterIP
+  name: shelf-boardgame-shelf-backend
+  replicas: 1
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0"
+              cpu: 500m
+              cpu: 50m
+  name: shelf-boardgame-shelf-frontend
+  replicas: 1
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.0.0"
+              cpu: 200m
+              cpu: 25m
+  name: shelf-boardgame-shelf-postgres
+  replicas: 1
+              cpu: 500m
+              cpu: 50m
+          cpu: 10m
+          cpu: 100m
+  name: shelf-boardgame-shelf-pre-upgrade
+              cpu: 10m
+              cpu: 200m
+== prod
+  name: shelf-boardgame-shelf-db
+  name: shelf-boardgame-shelf-config
+  ASPNETCORE_ENVIRONMENT: "Production"
+  name: shelf-boardgame-shelf-frontend-nginx
+  name: shelf-boardgame-shelf-postgres-data
+  name: shelf-boardgame-shelf-backend
+  type: ClusterIP
+  name: shelf-boardgame-shelf-frontend
+  type: ClusterIP
+  name: shelf-boardgame-shelf-postgres
+  type: ClusterIP
+  name: shelf-boardgame-shelf-backend
+  replicas: 3
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.1.0"
+              cpu: 100m
+  name: shelf-boardgame-shelf-frontend
+  replicas: 2
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.1.0"
+              cpu: 300m
+              cpu: 50m
+  name: shelf-boardgame-shelf-postgres
+  replicas: 1
+              cpu: 100m
+  name: shelf-boardgame-shelf
+          cpu: 10m
+          cpu: 100m
+  name: shelf-boardgame-shelf-pre-upgrade
+              cpu: 10m
+              cpu: 200m
+
+$ diff -u '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-dev.yaml' '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-prod.yaml' | grep -E '^[-+][^-+]' | grep -vE 'checksum/|POSTGRES_PASSWORD' | head -60
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  ASPNETCORE_ENVIRONMENT: "Development"
+-  App__ClubName: "Кубик і Ко (dev)"
++  ASPNETCORE_ENVIRONMENT: "Production"
++  App__ClubName: "Кубик і Ко"
+-  Logging__LogLevel__Default: "Debug"
++  Logging__LogLevel__Default: "Warning"
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-      storage: 1Gi
++      storage: 2Gi
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  type: NodePort
++  type: ClusterIP
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  replicas: 1
++  replicas: 3
+-          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0"
++          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.1.0"
+-              cpu: 500m
+-              memory: 256Mi
++              cpu: "1"
++              memory: 384Mi
+-              cpu: 50m
+-              memory: 96Mi
++              cpu: 100m
++              memory: 160Mi
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-  replicas: 1
++  replicas: 2
+-          image: "ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.0.0"
++          image: "ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.1.0"
+-              cpu: 200m
+-              memory: 64Mi
++              cpu: 300m
++              memory: 96Mi
+-              cpu: 25m
+-              memory: 32Mi
++              cpu: 50m
++              memory: 48Mi
+-  namespace: boardgame-dev
++  namespace: boardgame-prod
+-              cpu: 500m
+-              memory: 256Mi
++              cpu: "1"
++              memory: 512Mi
+-              cpu: 50m
+-              memory: 128Mi
+
+$ helm template shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' --show-only templates/backend-deployment.yaml | grep -E 'replicas:|image:'
+  replicas: 1
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0"
+
+$ helm template shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-prod.yaml' --show-only templates/backend-deployment.yaml | grep -E 'replicas:|image:'
+  replicas: 3
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.1.0"
+
+$ helm template shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-prod.yaml' -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-dev.yaml' --show-only templates/backend-deployment.yaml | grep -E 'replicas:|image:'
+  replicas: 1
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0"
+
+$ helm template shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-prod.yaml' --set backend.replicaCount=5 --set backend.image.tag=1.0.0 --show-only templates/backend-deployment.yaml | grep -E 'replicas:|image:'
+  replicas: 5
+          image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0"
+
+$ echo '== ЛР №3 (k8s/)'; grep -h '^kind:' '/Users/yehorishchuk/Desktop/boardgame-shelf'/k8s/*.yaml | sort | uniq -c; for e in dev prod; do echo "== чарт, $e (без hook/test)"; awk '/^# Source:/{f=($0 ~ /hooks|tests/)} !f' '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-'$e'.yaml' | grep '^kind:' | sort | uniq -c; done
+== ЛР №3 (k8s/)
+   1 kind: ConfigMap
+   3 kind: Deployment
+   1 kind: Ingress
+   1 kind: Namespace
+   1 kind: PersistentVolumeClaim
+   1 kind: Secret
+   3 kind: Service
+== чарт, dev (без hook/test)
+   2 kind: ConfigMap
+   3 kind: Deployment
+   1 kind: PersistentVolumeClaim
+   1 kind: Secret
+   3 kind: Service
+== чарт, prod (без hook/test)
+   2 kind: ConfigMap
+   3 kind: Deployment
+   1 kind: Ingress
+   1 kind: PersistentVolumeClaim
+   1 kind: Secret
+   3 kind: Service
+
+$ diff <(sed -n '/^kind: Deployment/,$p' '/Users/yehorishchuk/Desktop/boardgame-shelf/k8s/20-backend-deployment.yaml') <(awk '/Source: boardgame-shelf\/templates\/backend-deployment.yaml/{f=1;next} /^# Source:/{f=0} f' '/Users/yehorishchuk/Desktop/boardgame-shelf/report/lab4-output/rendered-dev.yaml' | sed -n '/^kind: Deployment/,$p') | head -60
+3,4c3,4
+<   name: backend
+<   namespace: boardgame-shelf
+---
+>   name: shelf-boardgame-shelf-backend
+>   namespace: boardgame-dev
+5a6
+>     helm.sh/chart: boardgame-shelf-0.1.0
+7c8,10
+<     app.kubernetes.io/component: backend
+---
+>     app.kubernetes.io/instance: shelf
+>     app.kubernetes.io/version: "1.0.0"
+>     app.kubernetes.io/managed-by: Helm
+8a12
+>     app.kubernetes.io/component: backend
+10c14
+<   replicas: 2
+---
+>   replicas: 1
+20a25
+>       app.kubernetes.io/instance: shelf
+24a30
+>         helm.sh/chart: boardgame-shelf-0.1.0
+26c32,34
+<         app.kubernetes.io/component: backend
+---
+>         app.kubernetes.io/instance: shelf
+>         app.kubernetes.io/version: "1.0.0"
+>         app.kubernetes.io/managed-by: Helm
+27a36,39
+>         app.kubernetes.io/component: backend
+>       annotations:
+>         checksum/config: 3ef490e320717384d88cdc8c0a991334d1d2c80deae272d5f4fd30e9583eaed3
+>         checksum/secret: 0703919cdab53854ede39d7260a4cd20b7f9008cb57d0cfe97983f65b1349d84
+32c44
+<           image: ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0
+---
+>           image: "ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0"
+37d48
+<           # усі ключі ConfigMap стають змінними оточення
+40c51
+<                 name: boardgame-config
+---
+>                 name: shelf-boardgame-shelf-config
+45c56
+<                   name: boardgame-db-secret
+---
+>                   name: shelf-boardgame-shelf-db
+50c61
+<                   name: boardgame-db-secret
+---
+>                   name: shelf-boardgame-shelf-db
+52d62
+<             # рядок підключення збирається з ConfigMap + Secret через $(VAR)
+54c64
+<               value: "Host=$(POSTGRES_HOST);Port=$(POSTGRES_PORT);Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+---
+>               value: "Host=$(POSTGRES_HOST);Port=$(POSTGRES_PORT);Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD);Pooling=false"
+56,58d65

@@ -1,0 +1,37 @@
+
+$ helm upgrade shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -n boardgame-dev -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-prod.yaml' --wait --timeout 5m | head -8
+
+# логи хука pre-upgrade (pod/shelf-boardgame-shelf-pre-upgrade-m8kqn):
+[pre-upgrade] release=shelf revision=3 -> checking shelf-boardgame-shelf-postgres:5432/boardgames
+shelf-boardgame-shelf-postgres:5432 - accepting connections
+[pre-upgrade] database OK, games in DB: 0
+Release "shelf" has been upgraded. Happy Helming!
+NAME: shelf
+LAST DEPLOYED: Thu Nov 19 12:15:47 2026
+NAMESPACE: boardgame-dev
+STATUS: deployed
+REVISION: 3
+NOTES:
+BoardGame Shelf встановлено: реліз «shelf», namespace «boardgame-dev», ревізія 3.
+
+$ kubectl -n boardgame-dev get deploy,svc,ingress
+NAME                                             READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/shelf-boardgame-shelf-backend    3/3     3            3           115s
+deployment.apps/shelf-boardgame-shelf-frontend   2/2     2            2           115s
+deployment.apps/shelf-boardgame-shelf-postgres   1/1     1            1           115s
+
+NAME                                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/shelf-boardgame-shelf-backend    ClusterIP   10.105.62.144    <none>        8080/TCP   115s
+service/shelf-boardgame-shelf-frontend   ClusterIP   10.107.218.139   <none>        80/TCP     115s
+service/shelf-boardgame-shelf-postgres   ClusterIP   10.111.187.237   <none>        5432/TCP   115s
+
+NAME                                              CLASS   HOSTS              ADDRESS        PORTS   AGE
+ingress.networking.k8s.io/shelf-boardgame-shelf   nginx   boardgames.local   192.168.49.2   80      36s
+
+$ kubectl -n boardgame-dev exec deploy/shelf-boardgame-shelf-frontend -- wget -qO- http://127.0.0.1/api/info; echo
+{"version":"1.1.0","instance":"shelf-boardgame-shelf-backend-6f558db9f5-7wp74","environment":"Production","clubName":"Кубик і Ко","maxBorrowDays":14,"dbHost":"shelf-boardgame-shelf-postgres","dbUser":"shelf_app","dbPasswordSet":true}
+
+# Ingress зсередини кластера: запит до ingress-nginx з заголовком Host: boardgames.local
+
+$ kubectl -n boardgame-dev run curl-check-6769 --image=busybox:1.36 --restart=Never --command -- sh -c "wget -qO- -T 5 --header 'Host: boardgames.local' http://ingress-nginx-controller.ingress-nginx.svc.cluster.local/api/info; echo" >/dev/null && kubectl -n boardgame-dev wait --for=jsonpath='{.status.phase}'=Succeeded pod/curl-check-6769 --timeout=90s >/dev/null; kubectl -n boardgame-dev logs curl-check-6769; kubectl -n boardgame-dev delete pod curl-check-6769 --wait=false >/dev/null
+{"version":"1.1.0","instance":"shelf-boardgame-shelf-backend-6f558db9f5-7wp74","environment":"Production","clubName":"Кубик і Ко","maxBorrowDays":14,"dbHost":"shelf-boardgame-shelf-postgres","dbUser":"shelf_app","dbPasswordSet":true}
