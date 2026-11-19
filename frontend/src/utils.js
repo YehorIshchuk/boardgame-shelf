@@ -7,3 +7,9 @@ export function isValidGame({ title, minPlayers, maxPlayers }) {
   const max = Number(maxPlayers);
   return title.trim().length > 0 && min >= 1 && max >= min;
 }
+
+export function footerText(webVersion, info) {
+  const web = `web v${webVersion || "dev"}`;
+  if (!info) return `${web} · API недоступне`;
+  return `${web} · API v${info.version} · под ${info.instance} · видача до ${info.maxBorrowDays} дн.`;
+}

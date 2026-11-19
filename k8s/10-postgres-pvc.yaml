@@ -1,0 +1,16 @@
+# Постійне сховище для PostgreSQL. У minikube обслуговується StorageClass "standard" (hostpath).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: boardgame-shelf
+  labels:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: boardgame-shelf
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

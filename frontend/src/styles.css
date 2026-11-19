@@ -16,3 +16,4 @@ button.danger { background: #b23a48; }
 .badge { margin-left: 10px; background: #ffe8a3; padding: 2px 8px; border-radius: 10px; font-size: 13px; }
 .actions { display: flex; gap: 6px; }
 .error { background: #fde2e4; color: #8a1c2b; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
+.footer { margin-top: 24px; color: #999; font-size: 13px; text-align: center; }

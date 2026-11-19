@@ -1,0 +1,17 @@
+# Несекретна конфігурація застосунку. Підключається до backend як змінні оточення (envFrom).
+# ASP.NET Core перетворює "__" у ":" — App__ClubName читається в коді як App:ClubName.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: boardgame-config
+  namespace: boardgame-shelf
+  labels:
+    app.kubernetes.io/part-of: boardgame-shelf
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  App__ClubName: "Кубик і Ко"
+  App__MaxBorrowDays: "14"
+  Logging__LogLevel__Default: "Information"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "boardgames"

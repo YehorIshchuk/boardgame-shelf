@@ -1,0 +1,19 @@
+# Внутрішня адреса БД: postgres.boardgame-shelf.svc:5432 (з поду в namespace — просто "postgres").
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: boardgame-shelf
+  labels:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: boardgame-shelf
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: database
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatPlayers, isValidGame } from "./utils.js";
+import { footerText, formatPlayers, isValidGame } from "./utils.js";
 
 const api = (path, options) =>
   fetch(`/api${path}`, {
@@ -16,12 +16,14 @@ export default function App() {
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ title: "", minPlayers: 2, maxPlayers: 4 });
+  const [info, setInfo] = useState(null);
 
   const load = () =>
     api("/games").then(setGames).catch((e) => setError(e.message));
 
   useEffect(() => {
     load();
+    api("/info").then(setInfo).catch(() => setInfo(null));
   }, []);
 
   const run = async (fn) => {
@@ -61,7 +63,7 @@ export default function App() {
   return (
     <main className="container">
       <h1>🎲 BoardGame Shelf</h1>
-      <p className="sub">Облік настільних ігор клубу</p>
+      <p className="sub">Облік настільних ігор клубу{info?.clubName ? ` «${info.clubName}»` : ""}</p>
 
       {error && <div className="error">{error}</div>}
 
@@ -114,6 +116,8 @@ export default function App() {
         ))}
         {games.length === 0 && <p className="sub">Полиця порожня — додайте першу гру.</p>}
       </ul>
+
+      <footer className="footer">{footerText(import.meta.env.VITE_APP_VERSION, info)}</footer>
     </main>
   );
 }

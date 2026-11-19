@@ -1,0 +1,19 @@
+# Ім'я "backend" обов'язкове: nginx у frontend проксіює /api/ на http://backend:8080.
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: boardgame-shelf
+  labels:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: boardgame-shelf
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

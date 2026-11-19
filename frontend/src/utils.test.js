@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPlayers, isValidGame } from "./utils.js";
+import { footerText, formatPlayers, isValidGame } from "./utils.js";
 
 describe("formatPlayers", () => {
   it("shows a range", () => {
@@ -22,5 +22,16 @@ describe("isValidGame", () => {
 
   it("rejects max lower than min", () => {
     expect(isValidGame({ title: "Azul", minPlayers: 4, maxPlayers: 2 })).toBe(false);
+  });
+});
+
+describe("footerText", () => {
+  it("shows web and api versions with the pod name", () => {
+    const info = { version: "1.1.0", instance: "backend-abc", maxBorrowDays: 7 };
+    expect(footerText("1.1.0", info)).toBe("web v1.1.0 · API v1.1.0 · под backend-abc · видача до 7 дн.");
+  });
+
+  it("handles a missing API", () => {
+    expect(footerText(undefined, null)).toBe("web vdev · API недоступне");
   });
 });

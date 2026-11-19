@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: ["**"]
+    # git tag v1.0.0 && git push origin v1.0.0  ->  images :1.0.0 and :1.0
+    tags: ["v*.*.*"]
   pull_request:
     branches: [main]
 
@@ -151,6 +153,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}-${{ matrix.service }}
           tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -160,6 +164,7 @@ jobs:
           context: ./${{ matrix.service }}
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: APP_VERSION=${{ steps.meta.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service }}

@@ -27,7 +27,29 @@ using (var scope = app.Services.CreateScope())
 
 app.UseCors();
 
+// liveness: the process is up and serving HTTP
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+
+// readiness: the instance can reach the database and may receive traffic
+app.MapGet("/api/ready", async (AppDbContext db) =>
+    await db.Database.CanConnectAsync()
+        ? Results.Ok(new { status = "ready" })
+        : Results.Json(new { status = "db unavailable" }, statusCode: StatusCodes.Status503ServiceUnavailable));
+
+// runtime info: image version, pod name and values that come from ConfigMap/Secret
+var dbInfo = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+app.MapGet("/api/info", (IConfiguration cfg, IWebHostEnvironment env) => Results.Ok(new
+{
+    version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "dev",
+    instance = Environment.MachineName,
+    environment = env.EnvironmentName,
+    clubName = cfg["App:ClubName"] ?? "BoardGame Club",
+    maxBorrowDays = cfg.GetValue("App:MaxBorrowDays", 14),
+    dbHost = dbInfo.Host,
+    dbUser = dbInfo.Username,
+    // never expose the secret itself, only the fact that it was provided
+    dbPasswordSet = !string.IsNullOrEmpty(dbInfo.Password)
+}));
 
 app.MapGet("/api/games", async (GameService s) => Results.Ok(await s.GetAllAsync()));
 
