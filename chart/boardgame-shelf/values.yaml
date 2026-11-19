@@ -1,0 +1,109 @@
+# Значення за замовчуванням відповідають середовищу розробки (dev).
+# Для prod — values-prod.yaml, для явного dev — values-dev.yaml.
+
+# Перевизначення імен об'єктів (зазвичай не потрібні).
+nameOverride: ""
+fullnameOverride: ""
+
+# Спільні параметри образів застосунку
+image:
+  registry: ghcr.io/yehorishchuk
+  pullPolicy: IfNotPresent
+
+# Стратегія оновлення backend і frontend (оновлення без простою)
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0
+
+# Параметри застосунку -> ConfigMap (змінні оточення backend)
+config:
+  aspnetEnvironment: Development
+  clubName: "Кубик і Ко (dev)"
+  maxBorrowDays: 14
+  logLevel: Debug
+
+# PostgreSQL
+database:
+  # лише 0 або 1: PostgreSQL з томом ReadWriteOnce не масштабується горизонтально
+  replicaCount: 1
+  name: boardgames
+  auth:
+    username: shelf_app
+    # Навчальне значення лише для dev. Якщо залишити порожнім, чарт згенерує
+    # випадковий пароль при першому встановленні і збереже його при оновленнях.
+    password: "dev-only-not-a-secret"
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  service:
+    port: 5432
+  persistence:
+    # false -> дані в emptyDir (зникають разом з подом)
+    enabled: true
+    size: 1Gi
+    # порожньо -> StorageClass кластера за замовчуванням
+    storageClass: ""
+    # true -> PVC не видаляється при helm uninstall (helm.sh/resource-policy: keep)
+    keep: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ASP.NET Core API
+backend:
+  replicaCount: 1
+  image:
+    repository: boardgame-shelf-backend
+    # порожньо -> appVersion з Chart.yaml
+    tag: ""
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# React + nginx
+frontend:
+  replicaCount: 1
+  image:
+    repository: boardgame-shelf-frontend
+    # порожньо -> appVersion з Chart.yaml
+    tag: ""
+  service:
+    type: NodePort
+    port: 80
+    # порожньо -> Kubernetes обирає вільний порт (дозволяє ставити чарт двічі)
+    nodePort: ""
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 64Mi
+
+# Ingress (потрібен minikube addons enable ingress)
+ingress:
+  enabled: false
+  className: nginx
+  host: boardgames-dev.local
+  annotations: {}
+
+# Хук pre-upgrade: перевірка доступності БД перед оновленням релізу
+hooks:
+  preUpgradeDbCheck:
+    enabled: true
+
+# Тест релізу (helm test)
+tests:
+  enabled: true
+  image: busybox:1.36

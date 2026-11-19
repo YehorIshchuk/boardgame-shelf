@@ -1,0 +1,20 @@
+apiVersion: v2
+name: boardgame-shelf
+description: BoardGame Shelf — облік настільних ігор клубу (React + nginx, ASP.NET Core 8, PostgreSQL 16)
+type: application
+
+# version — версія самого чарта (шаблонів і values). Змінюється, коли змінюється пакування.
+version: 0.1.0
+
+# appVersion — версія застосунку (тег Docker-образів backend і frontend за замовчуванням).
+appVersion: "1.0.0"
+
+keywords:
+  - boardgames
+  - aspnetcore
+  - postgresql
+home: https://github.com/YehorIshchuk/boardgame-shelf
+sources:
+  - https://github.com/YehorIshchuk/boardgame-shelf
+maintainers:
+  - name: YehorIshchuk

@@ -87,6 +87,35 @@ jobs:
       - name: Build
         run: npm run build
 
+  # ---------- Helm chart: lint + render for both environments ----------
+  helm:
+    name: Helm chart (lint, template)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.21.3
+
+      - name: Lint (default, dev, prod)
+        run: |
+          helm lint chart/boardgame-shelf
+          helm lint chart/boardgame-shelf -f chart/boardgame-shelf/values-dev.yaml
+          helm lint chart/boardgame-shelf -f chart/boardgame-shelf/values-prod.yaml
+
+      - name: Render (dev, prod)
+        run: |
+          helm template shelf chart/boardgame-shelf -n boardgame-dev  -f chart/boardgame-shelf/values-dev.yaml  > rendered-dev.yaml
+          helm template shelf chart/boardgame-shelf -n boardgame-prod -f chart/boardgame-shelf/values-prod.yaml > rendered-prod.yaml
+          grep -c '^kind:' rendered-dev.yaml rendered-prod.yaml
+
+      - name: Upload rendered manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-rendered
+          path: rendered-*.yaml
+
   # ---------- container images: build + vulnerability scan (no publish) ----------
   images:
     name: Docker image (${{ matrix.service }})

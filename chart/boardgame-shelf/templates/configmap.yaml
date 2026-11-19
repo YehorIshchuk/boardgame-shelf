@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "boardgame-shelf.configName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "boardgame-shelf.labels" . | nindent 4 }}
+data:
+  ASPNETCORE_ENVIRONMENT: {{ .Values.config.aspnetEnvironment | quote }}
+  App__ClubName: {{ .Values.config.clubName | quote }}
+  App__MaxBorrowDays: {{ .Values.config.maxBorrowDays | quote }}
+  Logging__LogLevel__Default: {{ .Values.config.logLevel | quote }}
+  POSTGRES_HOST: {{ include "boardgame-shelf.postgresName" . | quote }}
+  POSTGRES_PORT: {{ .Values.database.service.port | quote }}
+  POSTGRES_DB: {{ .Values.database.name | quote }}
