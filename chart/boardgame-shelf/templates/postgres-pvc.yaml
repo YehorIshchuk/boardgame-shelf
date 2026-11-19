@@ -1,0 +1,23 @@
+{{- if .Values.database.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "boardgame-shelf.postgresName" . }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "boardgame-shelf.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+  {{- if .Values.database.persistence.keep }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with .Values.database.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.database.persistence.size }}
+{{- end }}

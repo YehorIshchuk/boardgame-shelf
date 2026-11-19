@@ -1,0 +1,25 @@
+BoardGame Shelf встановлено: реліз «{{ .Release.Name }}», namespace «{{ .Release.Namespace }}», ревізія {{ .Release.Revision }}.
+Версія backend: {{ .Values.backend.image.tag | default .Chart.AppVersion }}, frontend: {{ .Values.frontend.image.tag | default .Chart.AppVersion }}.
+
+1. Дочекатися готовності подів:
+   kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+2. Відкрити застосунок:
+{{- if .Values.ingress.enabled }}
+   Через Ingress: http://{{ .Values.ingress.host }}
+     Linux:          додати "$(minikube ip) {{ .Values.ingress.host }}" у /etc/hosts
+     macOS/Windows:  додати "127.0.0.1 {{ .Values.ingress.host }}" у /etc/hosts і запустити "minikube tunnel"
+{{- else if eq .Values.frontend.service.type "NodePort" }}
+   Через NodePort:
+     minikube service {{ include "boardgame-shelf.frontendName" . }} -n {{ .Release.Namespace }}
+{{- end }}
+   Або на будь-якій ОС через port-forward:
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "boardgame-shelf.frontendName" . }} 8081:{{ .Values.frontend.service.port }}
+     -> http://localhost:8081
+
+3. Перевірити реліз:
+   helm test {{ .Release.Name }} -n {{ .Release.Namespace }} --logs
+{{- if not .Values.database.auth.password }}
+
+Пароль БД згенеровано автоматично й збережено в Secret {{ include "boardgame-shelf.secretName" . }}.
+{{- end }}

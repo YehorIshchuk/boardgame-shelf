@@ -1,0 +1,66 @@
+{{- if .Values.hooks.preUpgradeDbCheck.enabled }}
+{{- /*
+Хук pre-upgrade: перед кожним helm upgrade перевіряє, що PostgreSQL доступна,
+і друкує кількість ігор у БД. Якщо БД недоступна — Job падає, і Helm скасовує оновлення.
+Після успіху Job видаляється (hook-succeeded), тому після helm uninstall нічого не лишається.
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "boardgame-shelf.fullname" . }}-pre-upgrade
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "boardgame-shelf.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pre-upgrade-hook
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        {{- include "boardgame-shelf.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: pre-upgrade-hook
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-check
+          image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PGHOST
+              value: {{ include "boardgame-shelf.postgresName" . | quote }}
+            - name: PGPORT
+              value: {{ .Values.database.service.port | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.database.name | quote }}
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "boardgame-shelf.secretName" . }}
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "boardgame-shelf.secretName" . }}
+                  key: POSTGRES_PASSWORD
+          command:
+            - sh
+            - -c
+            - |
+              echo "[pre-upgrade] release={{ .Release.Name }} revision={{ .Release.Revision }} -> checking $PGHOST:$PGPORT/$PGDATABASE"
+              pg_isready -t 15 || { echo "[pre-upgrade] database is NOT ready, upgrade aborted"; exit 1; }
+              games=$(psql -tAc 'SELECT count(*) FROM "Games"' 2>/dev/null || echo "n/a")
+              echo "[pre-upgrade] database OK, games in DB: $games"
+              sleep 5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+{{- end }}

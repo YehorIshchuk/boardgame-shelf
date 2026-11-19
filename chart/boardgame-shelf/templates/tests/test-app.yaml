@@ -1,0 +1,45 @@
+{{- if .Values.tests.enabled }}
+{{- /*
+Тест релізу: helm test <release> -n <namespace> --logs
+Перевіряє ланцюжок frontend (nginx) -> backend -> PostgreSQL і що розгорнута очікувана версія.
+Под лишається після тесту (before-hook-creation), щоб helm test --logs міг прочитати логи;
+наступний запуск тесту видаляє старий под автоматично.
+*/}}
+{{- $expected := .Values.backend.image.tag | default .Chart.AppVersion | toString }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "boardgame-shelf.fullname" . }}-test
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "boardgame-shelf.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+    - name: smoke
+      image: {{ .Values.tests.image | quote }}
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          FRONT="http://{{ include "boardgame-shelf.frontendName" . }}:{{ .Values.frontend.service.port }}"
+          echo "1) frontend /healthz";  wget -qO- -T 5 "$FRONT/healthz"
+          echo "2) backend /api/ready (через nginx)"; wget -qO- -T 5 "$FRONT/api/ready"; echo
+          echo "3) /api/info";          info=$(wget -qO- -T 5 "$FRONT/api/info"); echo "$info"
+          echo "$info" | grep -q '"dbPasswordSet":true' || { echo "FAIL: DB password not set"; exit 1; }
+          echo "$info" | grep -q '"version":"{{ $expected }}"' || { echo "FAIL: expected version {{ $expected }}"; exit 1; }
+          echo "4) /api/games";         wget -qO- -T 5 "$FRONT/api/games" > /dev/null
+          echo "OK: release {{ .Release.Name }} works, backend version {{ $expected }}"
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 32Mi
+{{- end }}

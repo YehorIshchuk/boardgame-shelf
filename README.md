@@ -185,3 +185,158 @@ kubectl -n boardgame-shelf get pods,deploy,rs,svc,ingress,pvc
 ```
 
 Звіт: [`report/REPORT.md`](report/REPORT.md).
+
+## Helm-чарт (ЛР №4)
+
+Чарт [`chart/boardgame-shelf/`](chart/boardgame-shelf/) описує той самий застосунок, що й маніфести з `k8s/`, але параметризований і придатний для кількох середовищ.
+
+```
+chart/boardgame-shelf/
+├── Chart.yaml                  name, description, version, appVersion
+├── values.yaml                 значення за замовчуванням (= dev)
+├── values-dev.yaml             середовище розробки
+├── values-prod.yaml            продакшн-подібне середовище
+└── templates/
+    ├── _helpers.tpl            іменовані шаблони: імена об'єктів, мітки, образ, пароль БД
+    ├── NOTES.txt               інструкція після встановлення
+    ├── configmap.yaml          ConfigMap застосунку
+    ├── secret.yaml             Secret БД (значення з values)
+    ├── postgres-pvc.yaml       PVC (database.persistence.enabled)
+    ├── postgres-deployment.yaml
+    ├── postgres-service.yaml
+    ├── backend-deployment.yaml
+    ├── backend-service.yaml
+    ├── frontend-configmap.yaml конфіг nginx з адресою backend цього релізу
+    ├── frontend-deployment.yaml
+    ├── frontend-service.yaml
+    ├── ingress.yaml            Ingress (ingress.enabled)
+    ├── hooks/pre-upgrade-db-check.yaml   хук pre-upgrade
+    └── tests/test-app.yaml     тест релізу (helm test)
+```
+
+### version і appVersion
+
+- **`version: 0.1.0`** — версія **чарта**: шаблонів, `values.yaml`, хуків. Підвищується щоразу, коли змінюється пакування (новий параметр, новий об'єкт, виправлення шаблону), навіть якщо застосунок той самий. Саме ця версія потрапляє в ім'я пакета `boardgame-shelf-0.1.0.tgz` і в мітку `helm.sh/chart`.
+- **`appVersion: "1.0.0"`** — версія **застосунку** BoardGame Shelf, тобто тег Docker-образів `boardgame-shelf-backend` і `boardgame-shelf-frontend` за замовчуванням (якщо `backend.image.tag` / `frontend.image.tag` порожні). Відповідає git-тегу `v1.0.0`, з якого CI публікує образи.
+
+Тобто вихід нової версії застосунку `1.2.0` — це зміна `appVersion` (і, за правилами SemVer для чарта, мінорне підвищення `version`), а, наприклад, додавання прапорця `ingress.enabled` без зміни коду — лише зміна `version`.
+
+### Параметри values
+
+| Параметр | За замовчуванням (dev) | prod | Опис |
+|----------|------------------------|------|------|
+| `image.registry` | `ghcr.io/yehorishchuk` | — | реєстр образів застосунку |
+| `image.pullPolicy` | `IfNotPresent` | — | політика завантаження образів |
+| `rollingUpdate.maxSurge` / `maxUnavailable` | `1` / `0` | — | стратегія оновлення backend і frontend |
+| `config.aspnetEnvironment` | `Development` | `Production` | `ASPNETCORE_ENVIRONMENT` |
+| `config.clubName` | `Кубик і Ко (dev)` | `Кубик і Ко` | назва клубу (`App__ClubName`) |
+| `config.maxBorrowDays` | `14` | — | строк видачі гри (`App__MaxBorrowDays`) |
+| `config.logLevel` | `Debug` | `Warning` | рівень логування backend |
+| `database.replicaCount` | `1` | — | лише 0 або 1 |
+| `database.name` | `boardgames` | — | назва БД |
+| `database.auth.username` | `shelf_app` | — | користувач БД (Secret) |
+| `database.auth.password` | `dev-only-not-a-secret` | порожньо | пароль БД (Secret); порожньо — згенерувати й зберігати між оновленнями |
+| `database.image.repository` / `tag` | `postgres` / `16-alpine` | — | образ PostgreSQL |
+| `database.service.port` | `5432` | — | порт Service БД |
+| `database.persistence.enabled` | `true` | — | PVC або emptyDir |
+| `database.persistence.size` | `1Gi` | `2Gi` | розмір PVC |
+| `database.persistence.storageClass` | `""` | — | StorageClass (порожньо — за замовчуванням) |
+| `database.persistence.keep` | `false` | — | не видаляти PVC при `helm uninstall` |
+| `database.resources` | 50m/128Mi — 500m/256Mi | 100m/256Mi — 1/512Mi | ресурси PostgreSQL |
+| `backend.replicaCount` | `1` | `3` | репліки API |
+| `backend.image.repository` | `boardgame-shelf-backend` | — | образ API |
+| `backend.image.tag` | `""` → appVersion (`1.0.0` у values-dev) | `1.1.0` | тег образу API |
+| `backend.service.type` / `port` | `ClusterIP` / `8080` | — | Service API |
+| `backend.resources` | 50m/96Mi — 500m/256Mi | 100m/160Mi — 1/384Mi | ресурси API |
+| `frontend.replicaCount` | `1` | `2` | репліки nginx |
+| `frontend.image.repository` | `boardgame-shelf-frontend` | — | образ frontend |
+| `frontend.image.tag` | `""` → appVersion (`1.0.0` у values-dev) | `1.1.0` | тег образу frontend |
+| `frontend.service.type` | `NodePort` | `ClusterIP` | тип Service frontend |
+| `frontend.service.port` | `80` | — | порт Service frontend |
+| `frontend.service.nodePort` | `""` (вибирає Kubernetes) | — | фіксований NodePort |
+| `frontend.resources` | 25m/32Mi — 200m/64Mi | 50m/48Mi — 300m/96Mi | ресурси frontend |
+| `ingress.enabled` | `false` | `true` | створювати Ingress |
+| `ingress.className` | `nginx` | — | IngressClass |
+| `ingress.host` | `boardgames-dev.local` | `boardgames.local` | хост Ingress |
+| `ingress.annotations` | `{}` | — | анотації Ingress |
+| `hooks.preUpgradeDbCheck.enabled` | `true` | — | хук перевірки БД перед `helm upgrade` |
+| `tests.enabled` / `tests.image` | `true` / `busybox:1.36` | — | тест релізу |
+| `nameOverride` / `fullnameOverride` | `""` | — | перевизначення імен |
+
+### Встановлення
+
+Helm 3 (macOS, Apple Silicon):
+
+```bash
+curl -fsSLO https://get.helm.sh/helm-v3.21.3-darwin-arm64.tar.gz
+tar -xzf helm-v3.21.3-darwin-arm64.tar.gz
+sudo install darwin-arm64/helm /usr/local/bin/helm
+helm version
+```
+
+**dev:**
+
+```bash
+helm install shelf chart/boardgame-shelf -n boardgame-dev --create-namespace \
+  -f chart/boardgame-shelf/values-dev.yaml --wait
+```
+
+**prod:**
+
+```bash
+helm install shelf chart/boardgame-shelf -n boardgame-prod --create-namespace \
+  -f chart/boardgame-shelf/values-prod.yaml --wait
+# власний пароль замість згенерованого:
+#   --set database.auth.password='...'
+```
+
+Перевірка, оновлення, відкат, видалення:
+
+```bash
+helm lint chart/boardgame-shelf -f chart/boardgame-shelf/values-prod.yaml
+helm template shelf chart/boardgame-shelf -f chart/boardgame-shelf/values-prod.yaml   # без встановлення
+helm test shelf -n boardgame-dev --logs
+helm upgrade shelf chart/boardgame-shelf -n boardgame-dev -f chart/boardgame-shelf/values-dev.yaml --set backend.image.tag=1.1.0
+helm history shelf -n boardgame-dev
+helm rollback shelf 1 -n boardgame-dev
+helm uninstall shelf -n boardgame-dev
+```
+
+Імена всіх об'єктів будуються з імені релізу (`<release>-boardgame-shelf-backend` тощо), а NodePort за замовчуванням обирає Kubernetes, тому чарт можна встановити двічі навіть в один namespace.
+
+### Пріоритет значень
+
+Від найнижчого до найвищого:
+
+1. `values.yaml` чарта;
+2. файли `-f` / `--values` — у порядку, в якому вказані (наступний перекриває попередній);
+3. `--set` / `--set-string` — найвищий пріоритет.
+
+Значення зливаються по ключах: у `values-prod.yaml` достатньо вказати лише те, що відрізняється від `values.yaml`. Приклад: `-f values-prod.yaml --set backend.replicaCount=5` дасть 5 реплік і решту параметрів із prod.
+
+### Відмінності від маніфестів ЛР №3
+
+- **Namespace** не є частиною чарта — його створює `helm install -n <ns> --create-namespace` (рекомендація Helm: чарт не керує namespace, у який встановлюється).
+- **ConfigMap `…-frontend-nginx`** — новий об'єкт: в образі frontend адреса API прописана як `http://backend:8080`, а в чарті ім'я Service backend залежить від імені релізу, тому конфіг nginx генерується шаблоном і монтується поверх файлу з образу.
+- Мітки розширено стандартними `helm.sh/chart`, `app.kubernetes.io/instance`, `managed-by`; селектори містять `instance`, тож два релізи не «бачать» подів один одного.
+- Під поди додано анотації `checksum/config` і `checksum/secret`: зміна ConfigMap чи Secret через `helm upgrade` автоматично перезапускає backend.
+
+### Хук і тест (завдання 9b)
+
+- **`hooks/pre-upgrade-db-check.yaml`** — Job з хуком `pre-upgrade`: перед кожним `helm upgrade` перевіряє `pg_isready` і друкує кількість ігор у БД. Якщо PostgreSQL недоступна, Job падає і Helm скасовує оновлення (ревізія отримує статус `failed`, об'єкти не змінюються). Після успіху Job видаляється (`hook-delete-policy: hook-succeeded`).
+- **`tests/test-app.yaml`** — под з хуком `test`: проходить ланцюжок frontend → backend → PostgreSQL (`/healthz`, `/api/ready`, `/api/info`, `/api/games`) і перевіряє, що розгорнута очікувана версія backend. Запуск: `helm test <release> -n <ns> --logs`.
+
+### Де Helm зберігає стан
+
+У namespace релізу, у Secret типу `helm.sh/release.v1` з іменем `sh.helm.release.v1.<release>.v<ревізія>` (окремий Secret на кожну ревізію, мітка `owner=helm`). Усередині — base64(gzip(JSON)) з маніфестами, значеннями й статусом ревізії; на цьому базуються `helm history` і `helm rollback`.
+
+### Демонстрація (ЛР №4)
+
+[`scripts/lab4-demo.sh`](scripts/lab4-demo.sh) проходить пункти 1, 6–9 і зберігає вивід у `report/lab4-output/`:
+
+```bash
+./scripts/lab4-demo.sh              # усе по черзі
+./scripts/lab4-demo.sh lifecycle    # окремий етап: prep | render | install | twice | lifecycle | extra
+```
+
+Звіт: [`report/LAB4-REPORT.md`](report/LAB4-REPORT.md).

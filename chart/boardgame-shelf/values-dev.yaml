@@ -1,0 +1,40 @@
+# Середовище розробки.
+#   helm install shelf chart/boardgame-shelf -n boardgame-dev --create-namespace -f chart/boardgame-shelf/values-dev.yaml
+
+config:
+  aspnetEnvironment: Development
+  clubName: "Кубик і Ко (dev)"
+  logLevel: Debug
+
+backend:
+  replicaCount: 1
+  image:
+    tag: "1.0.0"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+frontend:
+  replicaCount: 1
+  image:
+    tag: "1.0.0"
+  service:
+    type: NodePort
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 64Mi
+
+database:
+  persistence:
+    size: 1Gi
+
+ingress:
+  enabled: false

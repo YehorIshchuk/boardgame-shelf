@@ -1,0 +1,53 @@
+# Продакшн-подібне середовище.
+#   helm install shelf chart/boardgame-shelf -n boardgame-prod --create-namespace -f chart/boardgame-shelf/values-prod.yaml
+#
+# Пароль БД тут свідомо не задано: чарт згенерує його при першому встановленні
+# і збереже при оновленнях. Задати свій: --set database.auth.password=...
+
+config:
+  aspnetEnvironment: Production
+  clubName: "Кубик і Ко"
+  logLevel: Warning
+
+backend:
+  replicaCount: 3
+  image:
+    tag: "1.1.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 160Mi
+    limits:
+      cpu: "1"
+      memory: 384Mi
+
+frontend:
+  replicaCount: 2
+  image:
+    tag: "1.1.0"
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 48Mi
+    limits:
+      cpu: 300m
+      memory: 96Mi
+
+database:
+  auth:
+    password: ""
+  persistence:
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+ingress:
+  enabled: true
+  host: boardgames.local
