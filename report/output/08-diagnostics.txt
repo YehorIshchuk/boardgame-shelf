@@ -1,0 +1,113 @@
+
+$ kubectl -n boardgame-shelf set image deploy/backend backend=ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist
+deployment.apps/backend image updated
+
+$ kubectl -n boardgame-shelf annotate deploy/backend kubernetes.io/change-cause='broken tag 9.9.9-does-not-exist' --overwrite
+deployment.apps/backend annotated
+
+$ kubectl -n boardgame-shelf get pods -l app.kubernetes.io/component=backend
+NAME                       READY   STATUS             RESTARTS   AGE
+backend-6fc9f9dc45-hs92k   0/1     ImagePullBackOff   0          40s
+backend-7cbc7b86c5-225cs   1/1     Running            0          105s
+backend-7cbc7b86c5-jjrzw   1/1     Running            0          113s
+
+$ kubectl -n boardgame-shelf rollout status deploy/backend --timeout=5s || true
+Waiting for deployment "backend" rollout to finish: 1 out of 2 new replicas have been updated...
+error: timed out waiting for the condition
+
+$ kubectl -n boardgame-shelf describe pod backend-6fc9f9dc45-hs92k | sed -n '/^Containers:/,/^    Ready:/p;/^Events:/,$p'
+Containers:
+  backend:
+    Container ID:   
+    Image:          ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist
+    Image ID:       
+    Port:           8080/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Waiting
+      Reason:       ImagePullBackOff
+    Ready:          False
+Events:
+  Type     Reason     Age                From               Message
+  ----     ------     ----               ----               -------
+  Normal   Scheduled  72s                default-scheduler  Successfully assigned boardgame-shelf/backend-6fc9f9dc45-hs92k to minikube
+  Normal   Pulling    36s (x3 over 72s)  kubelet            spec.containers{backend}: Pulling image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist"
+  Warning  Failed     36s (x3 over 71s)  kubelet            spec.containers{backend}: Failed to pull image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist": rpc error: code = NotFound desc = failed to pull and unpack image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist": failed to resolve reference "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist": ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist: not found
+  Warning  Failed     36s (x3 over 71s)  kubelet            spec.containers{backend}: Error: ErrImagePull
+  Normal   BackOff    8s (x4 over 71s)   kubelet            spec.containers{backend}: Back-off pulling image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist"
+  Warning  Failed     8s (x4 over 71s)   kubelet            spec.containers{backend}: Error: ImagePullBackOff
+
+$ kubectl -n boardgame-shelf get events --field-selector involvedObject.name=backend-6fc9f9dc45-hs92k --sort-by=.lastTimestamp
+LAST SEEN   TYPE      REASON      OBJECT                         MESSAGE
+72s         Normal    Scheduled   pod/backend-6fc9f9dc45-hs92k   Successfully assigned boardgame-shelf/backend-6fc9f9dc45-hs92k to minikube
+36s         Normal    Pulling     pod/backend-6fc9f9dc45-hs92k   Pulling image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist"
+36s         Warning   Failed      pod/backend-6fc9f9dc45-hs92k   Failed to pull image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist": rpc error: code = NotFound desc = failed to pull and unpack image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist": failed to resolve reference "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist": ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist: not found
+36s         Warning   Failed      pod/backend-6fc9f9dc45-hs92k   Error: ErrImagePull
+8s          Normal    BackOff     pod/backend-6fc9f9dc45-hs92k   Back-off pulling image "ghcr.io/yehorishchuk/boardgame-shelf-backend:9.9.9-does-not-exist"
+8s          Warning   Failed      pod/backend-6fc9f9dc45-hs92k   Error: ImagePullBackOff
+Старі поди продовжують обслуговувати запити (maxUnavailable: 0):
+
+$ kubectl -n boardgame-shelf exec deploy/frontend -- wget -qO- http://backend:8080/api/health; echo
+{"status":"ok"}
+
+$ kubectl -n boardgame-shelf logs backend-7cbc7b86c5-225cs --tail=20
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType0`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/ready'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://10.244.0.25:8080/api/ready - 200 - application/json;+charset=utf-8 21.2025ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://10.244.0.25:8080/api/health - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/health'
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType0`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/health'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://10.244.0.25:8080/api/health - 200 - application/json;+charset=utf-8 3.3423ms
+
+$ kubectl -n boardgame-shelf exec backend-7cbc7b86c5-225cs -- sh -c 'hostname; id; echo APP_VERSION=$APP_VERSION; ls /app | head -5'
+backend-7cbc7b86c5-225cs
+uid=0(root) gid=0(root) groups=0(root)
+APP_VERSION=1.0.0
+BoardGames.Api
+BoardGames.Api.deps.json
+BoardGames.Api.dll
+BoardGames.Api.pdb
+BoardGames.Api.runtimeconfig.json
+
+$ kubectl -n boardgame-shelf set image deploy/backend backend=ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0
+deployment.apps/backend image updated
+
+$ kubectl -n boardgame-shelf annotate deploy/backend kubernetes.io/change-cause='fix: back to 1.0.0' --overwrite
+deployment.apps/backend annotated
+
+$ kubectl -n boardgame-shelf rollout status deploy/backend --timeout=180s
+deployment "backend" successfully rolled out
+
+$ kubectl -n boardgame-shelf get pods,rs -l app.kubernetes.io/component=backend
+NAME                           READY   STATUS        RESTARTS   AGE
+pod/backend-6fc9f9dc45-hs92k   0/1     Terminating   0          2m32s
+pod/backend-7cbc7b86c5-225cs   1/1     Running       0          3m37s
+pod/backend-7cbc7b86c5-jjrzw   1/1     Running       0          3m45s
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/backend-5d48845d4    0         0         0       4m40s
+replicaset.apps/backend-6fc9f9dc45   0         0         0       2m32s
+replicaset.apps/backend-7cbc7b86c5   2         2         2       11m
+
+$ kubectl -n boardgame-shelf rollout history deploy/backend
+deployment.apps/backend 
+REVISION  CHANGE-CAUSE
+2         update to 1.1.0
+4         broken tag 9.9.9-does-not-exist
+5         fix: back to 1.0.0
+
+
+$ kubectl -n boardgame-shelf exec deploy/frontend -- wget -qO- http://backend:8080/api/info; echo
+{"version":"1.0.0","instance":"backend-7cbc7b86c5-225cs","environment":"Production","clubName":"Кубик і Ко","maxBorrowDays":14,"dbHost":"postgres","dbUser":"shelf_app","dbPasswordSet":true}

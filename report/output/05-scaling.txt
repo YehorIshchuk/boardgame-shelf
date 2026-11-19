@@ -1,0 +1,22 @@
+
+$ kubectl -n boardgame-shelf scale deploy/backend --replicas=4
+deployment.apps/backend scaled
+
+$ kubectl -n boardgame-shelf rollout status deploy/backend --timeout=180s
+Waiting for deployment "backend" rollout to finish: 2 of 4 updated replicas are available...
+Waiting for deployment "backend" rollout to finish: 2 of 4 updated replicas are available...
+Waiting for deployment "backend" rollout to finish: 2 of 4 updated replicas are available...
+deployment "backend" successfully rolled out
+
+$ kubectl -n boardgame-shelf get pods -l app.kubernetes.io/component=backend -o wide
+NAME                       READY   STATUS    RESTARTS   AGE     IP            NODE       NOMINATED NODE   READINESS GATES
+backend-7cbc7b86c5-kbl9d   1/1     Running   0          29s     10.244.0.12   minikube   <none>           <none>
+backend-7cbc7b86c5-n9jxt   1/1     Running   0          6m58s   10.244.0.9    minikube   <none>           <none>
+backend-7cbc7b86c5-tmfc2   1/1     Running   0          8s      10.244.0.14   minikube   <none>           <none>
+backend-7cbc7b86c5-wnxtr   1/1     Running   0          8s      10.244.0.13   minikube   <none>           <none>
+
+$ 40 запитів до Service backend — скільки відповів кожен под:
+  10 "instance":"backend-7cbc7b86c5-kbl9d"
+   6 "instance":"backend-7cbc7b86c5-n9jxt"
+  15 "instance":"backend-7cbc7b86c5-tmfc2"
+   9 "instance":"backend-7cbc7b86c5-wnxtr"

@@ -1,0 +1,32 @@
+
+$ kubectl -n boardgame-shelf get pods -l app.kubernetes.io/component=backend
+NAME                       READY   STATUS    RESTARTS   AGE
+backend-7cbc7b86c5-gt75k   1/1     Running   0          6m29s
+backend-7cbc7b86c5-n9jxt   1/1     Running   0          6m29s
+
+$ kubectl -n boardgame-shelf delete pod backend-7cbc7b86c5-gt75k --wait=false
+pod "backend-7cbc7b86c5-gt75k" deleted from boardgame-shelf namespace
+
+$ sleep 2; kubectl -n boardgame-shelf get pods -l app.kubernetes.io/component=backend
+NAME                       READY   STATUS        RESTARTS   AGE
+backend-7cbc7b86c5-gt75k   1/1     Terminating   0          6m32s
+backend-7cbc7b86c5-kbl9d   0/1     Running       0          3s
+backend-7cbc7b86c5-n9jxt   1/1     Running       0          6m32s
+
+$ kubectl -n boardgame-shelf rollout status deploy/backend --timeout=120s
+Waiting for deployment "backend" rollout to finish: 1 of 2 updated replicas are available...
+Waiting for deployment "backend" rollout to finish: 1 of 2 updated replicas are available...
+Waiting for deployment "backend" rollout to finish: 1 of 2 updated replicas are available...
+deployment "backend" successfully rolled out
+
+$ kubectl -n boardgame-shelf get pods -l app.kubernetes.io/component=backend
+NAME                       READY   STATUS    RESTARTS   AGE
+backend-7cbc7b86c5-kbl9d   1/1     Running   0          9s
+backend-7cbc7b86c5-n9jxt   1/1     Running   0          6m38s
+
+$ kubectl -n boardgame-shelf get events --field-selector involvedObject.kind=ReplicaSet --sort-by=.lastTimestamp | tail -5
+6m38s       Normal   SuccessfulCreate   replicaset/backend-7cbc7b86c5    Created pod: backend-7cbc7b86c5-gt75k
+6m38s       Normal   SuccessfulCreate   replicaset/backend-7cbc7b86c5    Created pod: backend-7cbc7b86c5-n9jxt
+6m38s       Normal   SuccessfulCreate   replicaset/frontend-55df945bdb   Created pod: frontend-55df945bdb-djmv9
+6m38s       Normal   SuccessfulCreate   replicaset/frontend-55df945bdb   Created pod: frontend-55df945bdb-774pk
+9s          Normal   SuccessfulCreate   replicaset/backend-7cbc7b86c5    Created pod: backend-7cbc7b86c5-kbl9d
