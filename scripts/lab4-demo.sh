@@ -60,8 +60,11 @@ capture_hook_logs() { # <file>
   HOOK_PID=$!
 }
 
+# після helm upgrade --wait старі поди ще кілька секунд завершуються (preStop + minReadySeconds)
+settle() { sleep 12; }
+
 api_info() { # <file>
-  run "$1" "kubectl -n $NS exec deploy/$FULL-frontend -- wget -qO- http://localhost/api/info; echo"
+  run "$1" "kubectl -n $NS exec deploy/$FULL-frontend -- wget -qO- http://127.0.0.1/api/info; echo"
 }
 
 # ---------------------------------------------------------------- 1. середовище
@@ -74,7 +77,7 @@ stage_prep() {
   note 01-prep "1c. маніфести ЛР №3 розгортаються і працюють"
   run 01-prep "kubectl apply -f '$ROOT/k8s/'"
   run 01-prep "kubectl -n boardgame-shelf rollout status deploy/backend --timeout=180s && kubectl -n boardgame-shelf rollout status deploy/frontend --timeout=180s"
-  run 01-prep "kubectl -n boardgame-shelf exec deploy/frontend -- wget -qO- http://localhost/api/info; echo"
+  run 01-prep "kubectl -n boardgame-shelf exec deploy/frontend -- wget -qO- http://127.0.0.1/api/info; echo"
   note 01-prep "1d. видаляємо розгортання ЛР №3, щоб не було конфлікту (NodePort 30080 тощо)"
   run 01-prep "kubectl delete -f '$ROOT/k8s/' --wait=true"
   run 01-prep "kubectl get ns boardgame-shelf 2>&1 || true"
@@ -156,6 +159,7 @@ stage_lifecycle() {
   capture_hook_logs 06-upgrade-set
   run 06-upgrade-set "helm upgrade $REL '$CHART' -n $NS -f '$CHART/values-dev.yaml' --set backend.image.tag=1.1.0 --set frontend.image.tag=1.1.0 --wait --timeout 5m | head -8"
   wait "$HOOK_PID" 2>/dev/null
+  settle
   run 06-upgrade-set "kubectl -n $NS get deploy -o wide | awk '{print \$1, \$2, \$7}'"
   api_info 06-upgrade-set
   pause
@@ -164,6 +168,7 @@ stage_lifecycle() {
   capture_hook_logs 07-upgrade-prod
   run 07-upgrade-prod "helm upgrade $REL '$CHART' -n $NS -f '$CHART/values-prod.yaml' --wait --timeout 5m | head -8"
   wait "$HOOK_PID" 2>/dev/null
+  settle
   run 07-upgrade-prod "kubectl -n $NS get deploy,svc,ingress"
   api_info 07-upgrade-prod
   note 07-upgrade-prod "Ingress зсередини кластера: запит до ingress-nginx з заголовком Host: boardgames.local"
@@ -178,6 +183,7 @@ stage_lifecycle() {
   section "8d. Відкат до ревізії 2 (dev + 1.1.0)"
   run 08-history "helm rollback $REL 2 -n $NS --wait --timeout 5m"
   run 08-history "helm history $REL -n $NS"
+  settle
   run 08-history "kubectl -n $NS get deploy,svc,ingress"
   api_info 08-history
   pause
@@ -185,7 +191,7 @@ stage_lifecycle() {
   section "8e. Видалення релізу однією командою"
   run 08-history "helm uninstall $REL -n $NS --wait"
   run 08-history "helm list -A"
-  run 08-history "kubectl -n $NS get all,cm,secret,pvc,ingress,jobs"
+  run 08-history "kubectl -n $NS wait --for=delete pod -l app.kubernetes.io/instance=$REL --timeout=90s >/dev/null 2>&1; kubectl -n $NS get all,cm,secret,pvc,ingress,jobs"
   note 08-history "kube-root-ca.crt — ConfigMap, який Kubernetes сам створює в кожному namespace; до релізу не належить"
   pause
 }
@@ -226,7 +232,7 @@ stage_extra() {
   section "Прибирання"
   run 09-hook-test "kubectl -n $NS delete pod $FULL-test --ignore-not-found"
   run 09-hook-test "helm uninstall $REL -n $NS --wait"
-  run 09-hook-test "kubectl -n $NS get all,cm,secret,pvc,ingress,jobs"
+  run 09-hook-test "kubectl -n $NS wait --for=delete pod -l app.kubernetes.io/instance=$REL --timeout=90s >/dev/null 2>&1; kubectl -n $NS get all,cm,secret,pvc,ingress,jobs"
 }
 
 case "${1:-all}" in

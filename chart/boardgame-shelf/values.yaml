@@ -35,6 +35,10 @@ database:
   image:
     repository: postgres
     tag: "16-alpine"
+  # Додаткові параметри рядка підключення Npgsql.
+  # Pooling=false: після перезапуску PostgreSQL з'єднання в пулі backend стають «мертвими»,
+  # і перший запит повертав 500. Для невеликого застосунку простіше вимкнути пул.
+  connectionOptions: "Pooling=false"
   service:
     port: 5432
   persistence:
@@ -45,6 +49,9 @@ database:
     storageClass: ""
     # true -> PVC не видаляється при helm uninstall (helm.sh/resource-policy: keep)
     keep: false
+    # false -> при оновленні релізу розмір існуючого PVC не змінюється
+    # (StorageClass standard у minikube не підтримує розширення томів)
+    allowResize: false
   resources:
     requests:
       cpu: 50m
