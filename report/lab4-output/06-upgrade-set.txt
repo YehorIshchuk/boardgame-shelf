@@ -1,0 +1,24 @@
+
+$ helm upgrade shelf '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -n boardgame-dev -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-dev.yaml' --set backend.image.tag=1.1.0 --set frontend.image.tag=1.1.0 --wait --timeout 5m | head -8
+
+# логи хука pre-upgrade (pod/shelf-boardgame-shelf-pre-upgrade-8chn4):
+[pre-upgrade] release=shelf revision=2 -> checking shelf-boardgame-shelf-postgres:5432/boardgames
+shelf-boardgame-shelf-postgres:5432 - accepting connections
+[pre-upgrade] database OK, games in DB: 0
+Release "shelf" has been upgraded. Happy Helming!
+NAME: shelf
+LAST DEPLOYED: Thu Nov 19 12:15:16 2026
+NAMESPACE: boardgame-dev
+STATUS: deployed
+REVISION: 2
+NOTES:
+BoardGame Shelf встановлено: реліз «shelf», namespace «boardgame-dev», ревізія 2.
+
+$ kubectl -n boardgame-dev get deploy -o wide | awk '{print $1, $2, $7}'
+NAME READY IMAGES
+shelf-boardgame-shelf-backend 1/1 ghcr.io/yehorishchuk/boardgame-shelf-backend:1.1.0
+shelf-boardgame-shelf-frontend 1/1 ghcr.io/yehorishchuk/boardgame-shelf-frontend:1.1.0
+shelf-boardgame-shelf-postgres 1/1 postgres:16-alpine
+
+$ kubectl -n boardgame-dev exec deploy/shelf-boardgame-shelf-frontend -- wget -qO- http://127.0.0.1/api/info; echo
+{"version":"1.1.0","instance":"shelf-boardgame-shelf-backend-689df7b7dd-sgvx2","environment":"Development","clubName":"Кубик і Ко (dev)","maxBorrowDays":14,"dbHost":"shelf-boardgame-shelf-postgres","dbUser":"shelf_app","dbPasswordSet":true}

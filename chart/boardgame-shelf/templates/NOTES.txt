@@ -1,5 +1,5 @@
 BoardGame Shelf встановлено: реліз «{{ .Release.Name }}», namespace «{{ .Release.Namespace }}», ревізія {{ .Release.Revision }}.
-Версія backend: {{ .Values.backend.image.tag | default .Chart.AppVersion }}, frontend: {{ .Values.frontend.image.tag | default .Chart.AppVersion }}.
+Версія backend: {{ .Values.backend.image.tag | default .Values.image.tag | default .Chart.AppVersion }}, frontend: {{ .Values.frontend.image.tag | default .Values.image.tag | default .Chart.AppVersion }}.
 
 1. Дочекатися готовності подів:
    kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }} -w
@@ -19,7 +19,7 @@ BoardGame Shelf встановлено: реліз «{{ .Release.Name }}», name
 
 3. Перевірити реліз:
    helm test {{ .Release.Name }} -n {{ .Release.Namespace }} --logs
-{{- if not .Values.database.auth.password }}
+{{- if and (not .Values.database.auth.password) (not .Values.database.auth.existingSecret) }}
 
 Пароль БД згенеровано автоматично й збережено в Secret {{ include "boardgame-shelf.secretName" . }}.
 {{- end }}

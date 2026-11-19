@@ -27,8 +27,13 @@ using (var scope = app.Services.CreateScope())
 
 app.UseCors();
 
-// liveness: the process is up and serving HTTP
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+var appVersion = Environment.GetEnvironmentVariable("APP_VERSION") ?? "dev";
+
+// liveness: the process is up and serving HTTP (version is shown for deployment checks)
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", version = appVersion }));
+
+// version of the running image (used to verify GitOps rollouts)
+app.MapGet("/api/version", () => Results.Ok(new { version = appVersion, instance = Environment.MachineName }));
 
 // readiness: the instance can reach the database and may receive traffic
 app.MapGet("/api/ready", async (AppDbContext db) =>
@@ -40,7 +45,7 @@ app.MapGet("/api/ready", async (AppDbContext db) =>
 var dbInfo = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
 app.MapGet("/api/info", (IConfiguration cfg, IWebHostEnvironment env) => Results.Ok(new
 {
-    version = Environment.GetEnvironmentVariable("APP_VERSION") ?? "dev",
+    version = appVersion,
     instance = Environment.MachineName,
     environment = env.EnvironmentName,
     clubName = cfg["App:ClubName"] ?? "BoardGame Club",

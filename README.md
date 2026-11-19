@@ -216,8 +216,8 @@ chart/boardgame-shelf/
 
 ### version і appVersion
 
-- **`version: 0.1.0`** — версія **чарта**: шаблонів, `values.yaml`, хуків. Підвищується щоразу, коли змінюється пакування (новий параметр, новий об'єкт, виправлення шаблону), навіть якщо застосунок той самий. Саме ця версія потрапляє в ім'я пакета `boardgame-shelf-0.1.0.tgz` і в мітку `helm.sh/chart`.
-- **`appVersion: "1.0.0"`** — версія **застосунку** BoardGame Shelf, тобто тег Docker-образів `boardgame-shelf-backend` і `boardgame-shelf-frontend` за замовчуванням (якщо `backend.image.tag` / `frontend.image.tag` порожні). Відповідає git-тегу `v1.0.0`, з якого CI публікує образи.
+- **`version: 0.2.0`** — версія **чарта**: шаблонів, `values.yaml`, хуків. Підвищується щоразу, коли змінюється пакування (новий параметр, новий об'єкт, виправлення шаблону), навіть якщо застосунок той самий. Саме ця версія потрапляє в ім'я пакета `boardgame-shelf-0.2.0.tgz` і в мітку `helm.sh/chart`.
+- **`appVersion: "1.2.0"`** — версія **застосунку** BoardGame Shelf, тобто тег Docker-образів `boardgame-shelf-backend` і `boardgame-shelf-frontend` за замовчуванням (якщо `backend.image.tag`, `frontend.image.tag` і `image.tag` порожні). Відповідає git-тегу `v1.2.0`, з якого CI публікує образи. (У ЛР №4 було `version: 0.1.0`, `appVersion: "1.0.0"`; для ЛР №5 чарт отримав нові параметри — `0.2.0` — і застосунок нову версію — `1.2.0`.)
 
 Тобто вихід нової версії застосунку `1.2.0` — це зміна `appVersion` (і, за правилами SemVer для чарта, мінорне підвищення `version`), а, наприклад, додавання прапорця `ingress.enabled` без зміни коду — лише зміна `version`.
 
@@ -227,6 +227,8 @@ chart/boardgame-shelf/
 |----------|------------------------|------|------|
 | `image.registry` | `ghcr.io/yehorishchuk` | — | реєстр образів застосунку |
 | `image.pullPolicy` | `IfNotPresent` | — | політика завантаження образів |
+| `image.tag` | `""` → appVersion | — | спільний тег backend і frontend (тег компонента має пріоритет) |
+| `progressDeadlineSeconds` | `600` | — | після скількох секунд без прогресу Deployment стає Failed |
 | `rollingUpdate.maxSurge` / `maxUnavailable` | `1` / `0` | — | стратегія оновлення backend і frontend |
 | `config.aspnetEnvironment` | `Development` | `Production` | `ASPNETCORE_ENVIRONMENT` |
 | `config.clubName` | `Кубик і Ко (dev)` | `Кубик і Ко` | назва клубу (`App__ClubName`) |
@@ -236,6 +238,7 @@ chart/boardgame-shelf/
 | `database.name` | `boardgames` | — | назва БД |
 | `database.auth.username` | `shelf_app` | — | користувач БД (Secret) |
 | `database.auth.password` | `dev-only-not-a-secret` | порожньо | пароль БД (Secret); порожньо — згенерувати й зберігати між оновленнями |
+| `database.auth.existingSecret` | `""` | — | ім'я готового Secret з `POSTGRES_USER`/`POSTGRES_PASSWORD`; якщо задано, чарт не створює свій Secret |
 | `database.image.repository` / `tag` | `postgres` / `16-alpine` | — | образ PostgreSQL |
 | `database.service.port` | `5432` | — | порт Service БД |
 | `database.persistence.enabled` | `true` | — | PVC або emptyDir |
@@ -342,3 +345,15 @@ helm uninstall shelf -n boardgame-dev
 ```
 
 Звіт: [`report/LAB4-REPORT.md`](report/LAB4-REPORT.md).
+
+## GitOps (ЛР №5)
+
+Розгортання в кластер виконує **Argo CD** з окремого репозиторію конфігурації [boardgame-shelf-gitops](https://github.com/YehorIshchuk/boardgame-shelf-gitops): там лежить копія чарта, значення для minikube і опис Application (App of Apps). Реліз нової версії:
+
+1. зміни в коді → PR → merge;
+2. `git tag vX.Y.Z && git push origin vX.Y.Z` — CI публікує образи `ghcr.io/yehorishchuk/boardgame-shelf-*:X.Y.Z`;
+3. у репозиторії gitops змінити `image.tag` в `environments/minikube/values.yaml`, commit, push — Argo CD сам перерозгорне застосунок.
+
+Версію запущеного застосунку видно в `GET /api/version`, `GET /api/health` (поле `version`), `GET /api/info` і у футері сторінки.
+
+Зміни чарта для GitOps (версія чарта 0.2.0): `database.auth.existingSecret` (пароль не зберігається в Git), спільний `image.tag` для backend і frontend, `progressDeadlineSeconds`.

@@ -1,0 +1,30 @@
+
+$ helm install shelf-b '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -n boardgame-dev -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-dev.yaml' --set config.clubName='Другий клуб' --wait --timeout 5m | head -5
+NAME: shelf-b
+LAST DEPLOYED: Thu Nov 19 12:14:58 2026
+NAMESPACE: boardgame-dev
+STATUS: deployed
+REVISION: 1
+
+$ helm list -n boardgame-dev
+NAME   	NAMESPACE    	REVISION	UPDATED                             	STATUS  	CHART                	APP VERSION
+shelf  	boardgame-dev	1       	2026-11-19 12:14:35.750582 +0200 EET	deployed	boardgame-shelf-0.1.0	1.0.0      
+shelf-b	boardgame-dev	1       	2026-11-19 12:14:58.785424 +0200 EET	deployed	boardgame-shelf-0.1.0	1.0.0      
+
+$ kubectl -n boardgame-dev get deploy,svc -o custom-columns=KIND:.kind,NAME:.metadata.name,RELEASE:.metadata.labels.app\.kubernetes\.io/instance
+KIND         NAME                               RELEASE
+Deployment   shelf-b-boardgame-shelf-backend    <none>
+Deployment   shelf-b-boardgame-shelf-frontend   <none>
+Deployment   shelf-b-boardgame-shelf-postgres   <none>
+Deployment   shelf-boardgame-shelf-backend      <none>
+Deployment   shelf-boardgame-shelf-frontend     <none>
+Deployment   shelf-boardgame-shelf-postgres     <none>
+Service      shelf-b-boardgame-shelf-backend    <none>
+Service      shelf-b-boardgame-shelf-frontend   <none>
+Service      shelf-b-boardgame-shelf-postgres   <none>
+Service      shelf-boardgame-shelf-backend      <none>
+Service      shelf-boardgame-shelf-frontend     <none>
+Service      shelf-boardgame-shelf-postgres     <none>
+
+$ helm uninstall shelf-b -n boardgame-dev --wait
+release "shelf-b" uninstalled

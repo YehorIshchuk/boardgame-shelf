@@ -1,0 +1,18 @@
+
+$ helm lint '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf'
+==> Linting /Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+
+$ helm lint '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-dev.yaml'
+==> Linting /Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+
+$ helm lint '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf' -f '/Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf/values-prod.yaml'
+==> Linting /Users/yehorishchuk/Desktop/boardgame-shelf/chart/boardgame-shelf
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed

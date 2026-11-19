@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { footerText, formatPlayers, isValidGame } from "./utils.js";
+import { footerText, formatPlayers, isValidGame, shelfStats, statsText } from "./utils.js";
 
 const api = (path, options) =>
   fetch(`/api${path}`, {
@@ -64,6 +64,8 @@ export default function App() {
     <main className="container">
       <h1>🎲 BoardGame Shelf</h1>
       <p className="sub">Облік настільних ігор клубу{info?.clubName ? ` «${info.clubName}»` : ""}</p>
+
+      <div className="stats">{statsText(shelfStats(games))}</div>
 
       {error && <div className="error">{error}</div>}
 

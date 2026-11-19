@@ -8,6 +8,15 @@ export function isValidGame({ title, minPlayers, maxPlayers }) {
   return title.trim().length > 0 && min >= 1 && max >= min;
 }
 
+export function shelfStats(games) {
+  const borrowed = games.filter((g) => g.isBorrowed).length;
+  return { total: games.length, borrowed, available: games.length - borrowed };
+}
+
+export function statsText({ total, borrowed, available }) {
+  return `На полиці: ${total} · доступно: ${available} · видано: ${borrowed}`;
+}
+
 export function footerText(webVersion, info) {
   const web = `web v${webVersion || "dev"}`;
   if (!info) return `${web} · API недоступне`;
