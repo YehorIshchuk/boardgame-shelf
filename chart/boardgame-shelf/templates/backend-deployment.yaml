@@ -52,7 +52,7 @@ spec:
                   name: {{ include "boardgame-shelf.secretName" . }}
                   key: POSTGRES_PASSWORD
             - name: ConnectionStrings__Default
-              value: "Host=$(POSTGRES_HOST);Port=$(POSTGRES_PORT);Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+              value: "Host=$(POSTGRES_HOST);Port=$(POSTGRES_PORT);Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD){{ with .Values.database.connectionOptions }};{{ . }}{{ end }}"
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           startupProbe:

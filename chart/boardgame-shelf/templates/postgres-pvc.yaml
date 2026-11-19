@@ -1,8 +1,19 @@
 {{- if .Values.database.persistence.enabled }}
+{{- $pvcName := printf "%s-data" (include "boardgame-shelf.postgresName" .) }}
+{{- /*
+Розмір PVC після створення змінювати не можна, якщо StorageClass не підтримує розширення
+(як standard у minikube). Тому при оновленні релізу зберігаємо поточний розмір,
+якщо явно не дозволено resize (database.persistence.allowResize).
+*/}}
+{{- $existing := lookup "v1" "PersistentVolumeClaim" .Release.Namespace $pvcName }}
+{{- $size := .Values.database.persistence.size }}
+{{- if and $existing (not .Values.database.persistence.allowResize) }}
+{{- $size = $existing.spec.resources.requests.storage }}
+{{- end }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "boardgame-shelf.postgresName" . }}-data
+  name: {{ $pvcName }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "boardgame-shelf.labels" . | nindent 4 }}
@@ -19,5 +30,5 @@ spec:
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.database.persistence.size }}
+      storage: {{ $size }}
 {{- end }}

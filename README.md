@@ -242,6 +242,8 @@ chart/boardgame-shelf/
 | `database.persistence.size` | `1Gi` | `2Gi` | розмір PVC |
 | `database.persistence.storageClass` | `""` | — | StorageClass (порожньо — за замовчуванням) |
 | `database.persistence.keep` | `false` | — | не видаляти PVC при `helm uninstall` |
+| `database.persistence.allowResize` | `false` | — | при оновленні змінювати розмір існуючого PVC (потрібна StorageClass з розширенням томів; у minikube його немає) |
+| `database.connectionOptions` | `Pooling=false` | — | додаткові параметри рядка підключення Npgsql (пул вимкнено: після перезапуску БД з'єднання в пулі ставали недійсними) |
 | `database.resources` | 50m/128Mi — 500m/256Mi | 100m/256Mi — 1/512Mi | ресурси PostgreSQL |
 | `backend.replicaCount` | `1` | `3` | репліки API |
 | `backend.image.repository` | `boardgame-shelf-backend` | — | образ API |
