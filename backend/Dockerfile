@@ -11,9 +11,11 @@ RUN dotnet publish BoardGames.Api/BoardGames.Api.csproj -c Release -o /app/publi
 
 # ---- runtime stage ----
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+ARG APP_VERSION=dev
 WORKDIR /app
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=http://+:8080 \
+    APP_VERSION=${APP_VERSION}
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "BoardGames.Api.dll"]

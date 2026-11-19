@@ -1,0 +1,90 @@
+# ASP.NET Core API. 2 репліки, оновлення без простою:
+# maxUnavailable: 0 — старий под видаляється лише після того, як новий став Ready.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: boardgame-shelf
+  labels:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: boardgame-shelf
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: boardgame-shelf
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: boardgame-shelf
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: boardgame-shelf
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: backend
+          image: ghcr.io/yehorishchuk/boardgame-shelf-backend:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          # усі ключі ConfigMap стають змінними оточення
+          envFrom:
+            - configMapRef:
+                name: boardgame-config
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: boardgame-db-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: boardgame-db-secret
+                  key: POSTGRES_PASSWORD
+            # рядок підключення збирається з ConfigMap + Secret через $(VAR)
+            - name: ConnectionStrings__Default
+              value: "Host=$(POSTGRES_HOST);Port=$(POSTGRES_PORT);Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          # поки застосунок стартує (чекає БД до ~20 с), liveness/readiness не виконуються
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          lifecycle:
+            # даємо Service/kube-proxy час прибрати под з endpoints до зупинки процесу
+            preStop:
+              exec:
+                command: ["sleep", "5"]

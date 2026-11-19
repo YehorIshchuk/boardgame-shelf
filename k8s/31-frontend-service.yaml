@@ -1,0 +1,21 @@
+# Точка входу для користувача. NodePort дає доступ з хоста без Ingress
+# (`minikube service frontend -n boardgame-shelf --url`); Ingress використовує цей самий Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: boardgame-shelf
+  labels:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: boardgame-shelf
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/component: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30080

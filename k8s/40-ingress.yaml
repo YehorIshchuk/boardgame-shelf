@@ -1,0 +1,23 @@
+# Доступ за іменем http://boardgames.local (потрібне `minikube addons enable ingress`
+# і запис у /etc/hosts — див. README).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: boardgame-shelf
+  namespace: boardgame-shelf
+  labels:
+    app.kubernetes.io/name: boardgame-shelf
+    app.kubernetes.io/part-of: boardgame-shelf
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: boardgames.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  name: http

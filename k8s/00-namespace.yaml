@@ -1,0 +1,8 @@
+# Окремий namespace для всіх об'єктів проєкту.
+# Файли в k8s/ пронумеровані, щоб `kubectl apply -f k8s/` створював namespace першим.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: boardgame-shelf
+  labels:
+    app.kubernetes.io/part-of: boardgame-shelf
